@@ -16,36 +16,69 @@ text_extensions = {
 # Folders to skip
 skip_folders = {'node_modules', '.next', 'dist', 'build', '.git', '__pycache__'}
 
-output_file = r"D:\yatrasecure\all_code_dump.txt"
+output_dir = r"D:\yatrasecure"
+base_filename = "all_code_dump"
 
-with open(output_file, 'w', encoding='utf-8') as out:
-    out.write("=" * 80 + "\n")
-    out.write("YATRASECURE - FULL CODE DUMP\n")
-    out.write("=" * 80 + "\n\n")
+# 450 KB limit
+MAX_SIZE = 450 * 1024
 
-    for base_dir in base_dirs:
-        for root, dirs, files in os.walk(base_dir):
-            # Skip unwanted folders
-            dirs[:] = [d for d in dirs if d not in skip_folders]
+file_index = 1
+current_size = 0
+output_path = os.path.join(output_dir, f"{base_filename}_{file_index}.txt")
 
-            for filename in sorted(files):
-                filepath = os.path.join(root, filename)
-                ext = os.path.splitext(filename)[1].lower()
+out = open(output_path, 'w', encoding='utf-8')
 
-                out.write("=" * 80 + "\n")
-                out.write(f"FILE: {filepath}\n")
-                out.write("=" * 80 + "\n")
+def write_data(data):
+    global current_size, file_index, out, output_path
 
-                if ext in text_extensions or filename in {'.env', '.env.local', '.prettierrc', '.gitignore'}:
-                    try:
-                        with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
-                            content = f.read()
-                        out.write(content)
-                    except Exception as e:
-                        out.write(f"[ERROR READING FILE: {e}]\n")
-                else:
-                    out.write(f"[BINARY OR UNSUPPORTED FILE - SKIPPED]\n")
+    encoded = data.encode('utf-8')
+    size = len(encoded)
 
-                out.write("\n\n")
+    if current_size + size > MAX_SIZE:
+        out.close()
+        file_index += 1
+        output_path = os.path.join(output_dir, f"{base_filename}_{file_index}.txt")
+        out = open(output_path, 'w', encoding='utf-8')
+        current_size = 0
 
-print(f"Done! Output written to: {output_file}")
+    out.write(data)
+    current_size += size
+
+
+write_data("=" * 80 + "\n")
+write_data("YATRASECURE - FULL CODE DUMP\n")
+write_data("=" * 80 + "\n\n")
+
+for base_dir in base_dirs:
+    for root, dirs, files in os.walk(base_dir):
+
+        dirs[:] = [d for d in dirs if d not in skip_folders]
+
+        for filename in sorted(files):
+
+            filepath = os.path.join(root, filename)
+            ext = os.path.splitext(filename)[1].lower()
+
+            header = (
+                "=" * 80 + "\n" +
+                f"FILE: {filepath}\n" +
+                "=" * 80 + "\n"
+            )
+
+            write_data(header)
+
+            if ext in text_extensions or filename in {'.env', '.env.local', '.prettierrc', '.gitignore'}:
+                try:
+                    with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                        content = f.read()
+                    write_data(content)
+                except Exception as e:
+                    write_data(f"[ERROR READING FILE: {e}]\n")
+            else:
+                write_data("[BINARY OR UNSUPPORTED FILE - SKIPPED]\n")
+
+            write_data("\n\n")
+
+out.close()
+
+print("Done! Files created in:", output_dir)

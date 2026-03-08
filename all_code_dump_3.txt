@@ -1,0 +1,4981 @@
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\package.json
+================================================================================
+{
+  "name": "yatrasecure-api",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
+  },
+  "dependencies": {
+    "@nestjs-modules/mailer": "^2.0.2",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.3",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/mongoose": "^11.0.4",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.1.13",
+    "@nestjs/platform-socket.io": "^11.1.13",
+    "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^11.1.13",
+    "@prisma/client": "5.22.0",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
+    "handlebars": "^4.7.8",
+    "mongoose": "^9.1.6",
+    "multer": "^2.0.2",
+    "nest-winston": "^1.10.2",
+    "nodemailer": "^8.0.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
+    "prisma": "5.22.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@types/bcrypt": "^6.0.0",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.10.7",
+    "@types/nodemailer": "^7.0.9",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/passport-local": "^1.0.38",
+    "@types/supertest": "^6.0.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^16.0.0",
+    "jest": "^30.0.0",
+    "prettier": "^3.4.2",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\tsconfig.build.json
+================================================================================
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\tsconfig.json
+================================================================================
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\schema.prisma
+================================================================================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  password     String
+  profileImage String?
+  bio          String?
+  age          Int?
+  city         String?
+  state        String?
+  firstName    String?
+  lastName     String?
+  phone        String?
+  country      String?
+  dateOfBirth  DateTime?
+  travelStyle  String[] @default([])
+  budgetRange  String?
+  refreshToken     String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  isEmailVerified     Boolean   @default(false)
+  verificationToken   String?
+  verificationExpiry  DateTime?
+
+  trips               Trip[]             @relation("UserTrips")
+  tripMembers         TripMember[]
+  joinRequests        JoinRequest[]
+  transactions        Transaction[]
+  notifications       Notification[]
+  expensesPaid        Expense[]          @relation("ExpensePaidBy")
+  expenseParticipants ExpenseParticipant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Notification {
+  id      String  @id @default(uuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type    String
+  title   String
+  message String
+  link    String?
+  isRead  Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model Trip {
+  id          String   @id @default(uuid())
+  name        String
+  fromCity    String
+  toCity      String
+  startDate   DateTime
+  endDate     DateTime
+  budget      Float
+  tripType    String
+  description String?
+  itinerary   String?
+  isPublic    Boolean  @default(true)
+  inviteCode  String?  @unique   // ← Private trips ke liye unique code
+
+  adminId String
+  admin   User   @relation("UserTrips", fields: [adminId], references: [id], onDelete: Cascade)
+
+  members      TripMember[]
+  joinRequests JoinRequest[]
+  wallet       Wallet?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("trips")
+}
+
+model Wallet {
+  id          String   @id @default(uuid())
+  tripId      String   @unique
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  totalBudget Float    @default(0)
+  collected   Float    @default(0)
+  spent       Float    @default(0)
+  transactions Transaction[]
+  expenses     Expense[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id          String  @id @default(uuid())
+  walletId    String
+  wallet      Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String
+  amount      Float
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("transactions")
+}
+
+model Expense {
+  id          String  @id @default(uuid())
+  walletId    String
+  wallet      Wallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  paidBy      String
+  paidByUser  User    @relation("ExpensePaidBy", fields: [paidBy], references: [id], onDelete: Cascade)
+  amount      Float
+  description String
+  category    String? @default("other")
+  splitType   String  @default("equal")
+  participants ExpenseParticipant[]
+  createdAt   DateTime @default(now())
+
+  @@map("expenses")
+}
+
+model ExpenseParticipant {
+  id        String  @id @default(uuid())
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  share     Float
+  createdAt DateTime @default(now())
+
+  @@unique([expenseId, userId])
+  @@map("expense_participants")
+}
+
+model TripMember {
+  id       String   @id @default(uuid())
+  tripId   String
+  trip     Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+
+  @@unique([tripId, userId])
+  @@map("trip_members")
+}
+
+model JoinRequest {
+  id          String  @id @default(uuid())
+  tripId      String
+  trip        Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  requesterId String
+  requester   User    @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  message     String?
+  status      String  @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("join_requests")
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\migration_lock.toml
+================================================================================
+# Please do not edit this file manually
+# It should be added in your version-control system (i.e. Git)
+provider = "postgresql"
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260208194244_init\migration.sql
+================================================================================
+-- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260208195444_add_user_profile_fields\migration.sql
+================================================================================
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN     "age" INTEGER,
+ADD COLUMN     "bio" TEXT,
+ADD COLUMN     "budgetRange" TEXT,
+ADD COLUMN     "city" TEXT,
+ADD COLUMN     "profileImage" TEXT,
+ADD COLUMN     "state" TEXT,
+ADD COLUMN     "travelStyle" TEXT[] DEFAULT ARRAY[]::TEXT[];
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260209150535_add_trip_model\migration.sql
+================================================================================
+-- CreateTable
+CREATE TABLE "trips" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "fromCity" TEXT NOT NULL,
+    "toCity" TEXT NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
+    "budget" DOUBLE PRECISION NOT NULL,
+    "tripType" TEXT NOT NULL,
+    "description" TEXT,
+    "isPublic" BOOLEAN NOT NULL DEFAULT true,
+    "adminId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "trips_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "trips" ADD CONSTRAINT "trips_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260209151005_add_trip_members_and_requests\migration.sql
+================================================================================
+-- CreateTable
+CREATE TABLE "trip_members" (
+    "id" TEXT NOT NULL,
+    "tripId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'member',
+    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "trip_members_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "join_requests" (
+    "id" TEXT NOT NULL,
+    "tripId" TEXT NOT NULL,
+    "requesterId" TEXT NOT NULL,
+    "message" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "join_requests_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trip_members_tripId_userId_key" ON "trip_members"("tripId", "userId");
+
+-- AddForeignKey
+ALTER TABLE "trip_members" ADD CONSTRAINT "trip_members_tripId_fkey" FOREIGN KEY ("tripId") REFERENCES "trips"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "trip_members" ADD CONSTRAINT "trip_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "join_requests" ADD CONSTRAINT "join_requests_tripId_fkey" FOREIGN KEY ("tripId") REFERENCES "trips"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "join_requests" ADD CONSTRAINT "join_requests_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260209152611_add_wallet_and_transactions\migration.sql
+================================================================================
+-- CreateTable
+CREATE TABLE "wallets" (
+    "id" TEXT NOT NULL,
+    "tripId" TEXT NOT NULL,
+    "totalBudget" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "collected" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "spent" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "wallets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "transactions" (
+    "id" TEXT NOT NULL,
+    "walletId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "transactions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "wallets_tripId_key" ON "wallets"("tripId");
+
+-- AddForeignKey
+ALTER TABLE "wallets" ADD CONSTRAINT "wallets_tripId_fkey" FOREIGN KEY ("tripId") REFERENCES "trips"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "wallets"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260214120824_add_refresh_token_and_profile_fields\migration.sql
+================================================================================
+-- DropForeignKey
+ALTER TABLE "join_requests" DROP CONSTRAINT "join_requests_requesterId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "join_requests" DROP CONSTRAINT "join_requests_tripId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "transactions" DROP CONSTRAINT "transactions_userId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "transactions" DROP CONSTRAINT "transactions_walletId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "trip_members" DROP CONSTRAINT "trip_members_tripId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "trip_members" DROP CONSTRAINT "trip_members_userId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "trips" DROP CONSTRAINT "trips_adminId_fkey";
+
+-- DropForeignKey
+ALTER TABLE "wallets" DROP CONSTRAINT "wallets_tripId_fkey";
+
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN     "country" TEXT,
+ADD COLUMN     "dateOfBirth" TIMESTAMP(3),
+ADD COLUMN     "firstName" TEXT,
+ADD COLUMN     "lastName" TEXT,
+ADD COLUMN     "phone" TEXT,
+ADD COLUMN     "refreshToken" TEXT;
+
+-- AddForeignKey
+ALTER TABLE "trips" ADD CONSTRAINT "trips_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "wallets" ADD CONSTRAINT "wallets_tripId_fkey" FOREIGN KEY ("tripId") REFERENCES "trips"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "wallets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "trip_members" ADD CONSTRAINT "trip_members_tripId_fkey" FOREIGN KEY ("tripId") REFERENCES "trips"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "trip_members" ADD CONSTRAINT "trip_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "join_requests" ADD CONSTRAINT "join_requests_tripId_fkey" FOREIGN KEY ("tripId") REFERENCES "trips"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "join_requests" ADD CONSTRAINT "join_requests_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260214172839_add_password_reset_fields\migration.sql
+================================================================================
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN     "resetToken" TEXT,
+ADD COLUMN     "resetTokenExpiry" TIMESTAMP(3);
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260214180717_add_expenses\migration.sql
+================================================================================
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN     "isEmailVerified" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "verificationExpiry" TIMESTAMP(3),
+ADD COLUMN     "verificationToken" TEXT;
+
+-- CreateTable
+CREATE TABLE "expenses" (
+    "id" TEXT NOT NULL,
+    "walletId" TEXT NOT NULL,
+    "paidBy" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "description" TEXT NOT NULL,
+    "category" TEXT DEFAULT 'other',
+    "splitType" TEXT NOT NULL DEFAULT 'equal',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "expenses_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "expense_participants" (
+    "id" TEXT NOT NULL,
+    "expenseId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "share" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "expense_participants_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "expense_participants_expenseId_userId_key" ON "expense_participants"("expenseId", "userId");
+
+-- AddForeignKey
+ALTER TABLE "expenses" ADD CONSTRAINT "expenses_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "wallets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "expenses" ADD CONSTRAINT "expenses_paidBy_fkey" FOREIGN KEY ("paidBy") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "expense_participants" ADD CONSTRAINT "expense_participants_expenseId_fkey" FOREIGN KEY ("expenseId") REFERENCES "expenses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "expense_participants" ADD CONSTRAINT "expense_participants_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260214200222_add_notifications\migration.sql
+================================================================================
+-- CreateTable
+CREATE TABLE "notifications" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "link" TEXT,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "notifications_userId_isRead_idx" ON "notifications"("userId", "isRead");
+
+-- CreateIndex
+CREATE INDEX "notifications_userId_createdAt_idx" ON "notifications"("userId", "createdAt");
+
+-- AddForeignKey
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260307114356_add_invite_code\migration.sql
+================================================================================
+/*
+  Warnings:
+
+  - A unique constraint covering the columns `[inviteCode]` on the table `trips` will be added. If there are existing duplicate values, this will fail.
+
+*/
+-- AlterTable
+ALTER TABLE "trips" ADD COLUMN     "inviteCode" TEXT;
+
+-- CreateIndex
+CREATE UNIQUE INDEX "trips_inviteCode_key" ON "trips"("inviteCode");
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\prisma\migrations\20260307123234_add_itinerary_field\migration.sql
+================================================================================
+-- AlterTable
+ALTER TABLE "trips" ADD COLUMN     "itinerary" TEXT;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\app.controller.spec.ts
+================================================================================
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+describe('AppController', () => {
+  let appController: AppController;
+
+  beforeEach(async () => {
+    const app: TestingModule = await Test.createTestingModule({
+      controllers: [AppController],
+      providers: [AppService],
+    }).compile();
+
+    appController = app.get<AppController>(AppController);
+  });
+
+  describe('root', () => {
+    it('should return "Hello World!"', () => {
+      expect(appController.getHello()).toBe('Hello World!');
+    });
+  });
+});
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\app.controller.ts
+================================================================================
+import { Controller, Get } from '@nestjs/common';
+
+@Controller()
+export class AppController {
+  @Get('health')
+  healthCheck() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'yatrasecure-api',
+    };
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\app.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { AppController } from './app.controller';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { TripsModule } from './trips/trips.module';
+import { JoinRequestsModule } from './join-requests/join-requests.module';
+import { MembersModule } from './members/members.module';
+import { WalletModule } from './wallet/wallet.module';
+import { ChatModule } from './chat/chat.module';
+import { EmailModule } from './email/email.module';
+import { LoggerModule } from './common/logger/logger.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { UploadModule } from './upload/upload.module';
+import { NotificationsModule } from './notifications/notifications.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+
+    MongooseModule.forRootAsync({
+      useFactory: (config: ConfigService) => ({
+        uri: config.get('MONGODB_URI'),
+      }),
+      inject: [ConfigService],
+    }),
+
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 20,
+      },
+    ]),
+
+    LoggerModule,
+    PrismaModule,
+
+    AuthModule,
+    UsersModule,
+    TripsModule,
+    JoinRequestsModule,
+    MembersModule,
+
+    WalletModule,
+    ExpensesModule,
+    ChatModule,
+
+    EmailModule,
+    UploadModule,
+
+    NotificationsModule,
+  ],
+  controllers: [AppController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
+})
+export class AppModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\app.service.ts
+================================================================================
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class AppService {
+  getHello(): string {
+    return 'Hello World!';
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\main.ts
+================================================================================
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+import { AppModule } from './app.module';
+import { LoggerService } from './common/logger/logger.service';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.setGlobalPrefix('api');
+
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads',
+  });
+
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL,
+    ].filter((url): url is string => Boolean(url)),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+
+  const logger = app.get(LoggerService);
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
+  app.useGlobalInterceptors(new LoggingInterceptor(logger));
+
+  const port = process.env.PORT || 3001;
+  await app.listen(port);
+
+  logger.log(
+    `Application is running on: http://localhost:${port}/api`,
+    'Bootstrap',
+  );
+}
+bootstrap();
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\auth.controller.ts
+================================================================================
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { AuthService } from './auth.service';
+import { SignupDto } from './dto/signup.dto';
+import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
+  @Post('signup')
+  async signup(@Body() signupDto: SignupDto) {
+    return this.authService.signup(signupDto);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Body('refresh_token') refreshToken: string) {
+    return this.authService.refreshTokens(refreshToken);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: any) {
+    return this.authService.logout(req.user.sub);
+  }
+
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto.token);
+  }
+
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@Body() resendVerificationDto: ResendVerificationDto) {
+    return this.authService.resendVerificationEmail(resendVerificationDto.email);
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\auth.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { UsersModule } from '../users/users.module';
+import { EmailModule } from '../email/email.module';
+
+@Module({
+  imports: [
+    UsersModule,
+    PassportModule,
+    EmailModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: '7d',
+        },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy],
+  exports: [AuthService],
+})
+export class AuthModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\auth.service.ts
+================================================================================
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
+import { UsersService } from '../users/users.service';
+import { EmailService } from '../email/email.service';
+import { SignupDto } from './dto/signup.dto';
+import { LoginDto } from './dto/login.dto';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private prisma: PrismaService,
+    private usersService: UsersService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+    private emailService: EmailService,
+  ) {}
+
+  async signup(signupDto: SignupDto) {
+    const { email, username, password } = signupDto;
+
+    const existingUser = await this.prisma.user.findFirst({
+      where: { OR: [{ email }, { username }] },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email or username already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedVerificationToken = await bcrypt.hash(verificationToken, 10);
+    const verificationExpiry = new Date(Date.now() + 86400000);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+        isEmailVerified: false,
+        verificationToken: hashedVerificationToken,
+        verificationExpiry,
+      },
+    });
+
+    try {
+      await this.emailService.sendWelcomeEmail(user.email, user.username);
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+    }
+
+    try {
+      await this.emailService.sendVerificationEmail(user.email, user.username, verificationToken);
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+    const { password: _, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_in: tokens.expires_in,
+    };
+  }
+
+  async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
+
+    const tokens = await this.generateTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+    const { password: _, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_in: tokens.expires_in,
+    };
+  }
+
+  private async generateTokens(userId: string, email: string) {
+    const payload = { sub: userId, email };
+
+    const access_token = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: '15m',
+    });
+
+    const refresh_token = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: '30d',
+    });
+
+    return { access_token, refresh_token, expires_in: 15 * 60 };
+  }
+
+  private async updateRefreshToken(userId: string, refreshToken: string) {
+    const hashed = await bcrypt.hash(refreshToken, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: hashed },
+    });
+  }
+
+  async refreshTokens(refreshToken: string) {
+    if (!refreshToken) throw new UnauthorizedException('Refresh token missing');
+
+    try {
+      const payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub as string },
+      });
+
+      if (!user || !user.refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const matches = await bcrypt.compare(refreshToken, user.refreshToken);
+      if (!matches) throw new UnauthorizedException('Invalid refresh token');
+
+      const tokens = await this.generateTokens(user.id, user.email);
+      await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+      return tokens;
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  async logout(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: null },
+    });
+    return { message: 'Logged out successfully' };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return { message: 'If your email is registered, you will receive a password reset link.' };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = await bcrypt.hash(resetToken, 10);
+    const resetTokenExpiry = new Date(Date.now() + 3600000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken: hashedToken, resetTokenExpiry },
+    });
+
+    try {
+      await this.emailService.sendPasswordResetEmail(user.email, user.username, resetToken);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      throw new Error('Failed to send reset email. Please try again.');
+    }
+
+    return { message: 'If your email is registered, you will receive a password reset link.' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        resetToken: { not: null },
+        resetTokenExpiry: { gt: new Date() },
+      },
+    });
+
+    type UserType = (typeof users)[number];
+    let matchedUser: UserType | null = null;
+
+    for (const user of users) {
+      if (user.resetToken) {
+        const isValid = await bcrypt.compare(token, user.resetToken);
+        if (isValid) {
+          matchedUser = user;
+          break;
+        }
+      }
+    }
+
+    if (!matchedUser) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: matchedUser.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+        refreshToken: null,
+      },
+    });
+
+    return { message: 'Password reset successfully. Please login with your new password.' };
+  }
+
+  async verifyEmail(token: string) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        verificationToken: { not: null },
+        verificationExpiry: { gt: new Date() },
+        isEmailVerified: false,
+      },
+    });
+
+    type UserType = (typeof users)[number];
+    let matchedUser: UserType | null = null;
+
+    for (const user of users) {
+      if (user.verificationToken) {
+        const isValid = await bcrypt.compare(token, user.verificationToken);
+        if (isValid) {
+          matchedUser = user;
+          break;
+        }
+      }
+    }
+
+    if (!matchedUser) {
+      throw new UnauthorizedException('Invalid or expired verification token');
+    }
+
+    await this.prisma.user.update({
+      where: { id: matchedUser.id },
+      data: {
+        isEmailVerified: true,
+        verificationToken: null,
+        verificationExpiry: null,
+      },
+    });
+
+    return {
+      message: 'Email verified successfully!',
+      user: {
+        id: matchedUser.id,
+        email: matchedUser.email,
+        username: matchedUser.username,
+        isEmailVerified: true,
+      },
+    };
+  }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return { message: 'If your email is registered, you will receive a verification link.' };
+    }
+
+    if (user.isEmailVerified) {
+      throw new ConflictException('Email is already verified');
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedVerificationToken = await bcrypt.hash(verificationToken, 10);
+    const verificationExpiry = new Date(Date.now() + 86400000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken: hashedVerificationToken,
+        verificationExpiry,
+      },
+    });
+
+    try {
+      await this.emailService.sendVerificationEmail(user.email, user.username, verificationToken);
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      throw new Error('Failed to send verification email. Please try again.');
+    }
+
+    return { message: 'Verification email sent successfully!' };
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\dto\forgot-password.dto.ts
+================================================================================
+import { IsEmail, IsNotEmpty } from 'class-validator';
+
+export class ForgotPasswordDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\dto\login.dto.ts
+================================================================================
+
+
+import { IsEmail, IsString, MinLength } from 'class-validator';
+
+export class LoginDto {
+  @IsEmail({}, { message: 'Invalid email format' })
+  email: string;
+
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  password: string;
+}
+
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\dto\resend-verification.dto.ts
+================================================================================
+import { IsEmail, IsNotEmpty } from 'class-validator';
+
+export class ResendVerificationDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\dto\reset-password.dto.ts
+================================================================================
+import { IsString, IsNotEmpty, MinLength, Matches } from 'class-validator';
+
+export class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message: 'Password must contain uppercase, lowercase, and number',
+  })
+  newPassword: string;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\dto\signup.dto.ts
+================================================================================
+import { IsEmail, IsString, MinLength, MaxLength, Matches } from 'class-validator';
+
+export class SignupDto {
+  @IsEmail({}, { message: 'Invalid email format' })
+  email: string;
+
+  @IsString()
+  @MinLength(3, { message: 'Username must be at least 3 characters' })
+  @MaxLength(20, { message: 'Username must not exceed 20 characters' })
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'Username can only contain letters, numbers, and underscores',
+  })
+  username: string;
+
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
+    message: 'Password must contain uppercase, lowercase, number, and special character',
+  })
+  password: string;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\dto\verify-email.dto.ts
+================================================================================
+import { IsString, IsNotEmpty } from 'class-validator';
+
+export class VerifyEmailDto {
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\guards\jwt-auth.guard.ts
+================================================================================
+
+import { Injectable } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {}
+
+
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\guards\optional-jwt-auth.guard.ts
+================================================================================
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+@Injectable()
+export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
+  canActivate(context: ExecutionContext) {
+    return super.canActivate(context);
+  }
+
+  handleRequest(err: any, user: any) {
+    // Token nahi hai / invalid — null return karo, exception throw mat karo
+    return user || null;
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\auth\strategies\jwt.strategy.ts
+================================================================================
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+import { UsersService } from '../../users/users.service';
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(
+    private configService: ConfigService,
+    private usersService: UsersService,
+  ) {
+    const secret = configService.get<string>('JWT_SECRET');
+    // ── Secret missing hai toh startup pe hi crash karo ──
+    if (!secret) {
+      throw new Error('JWT_SECRET is not defined in .env!');
+    }
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: secret,
+    });
+  }
+
+  async validate(payload: { sub: string; email: string }) {
+    const user = await this.usersService.findById(payload.sub);
+    if (!user) throw new UnauthorizedException('Invalid token');
+    return user;
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\chat\chat.controller.ts
+================================================================================
+import { Controller, Get, Post, Param, Body, UseGuards, Request } from '@nestjs/common';
+import { ChatService } from './chat.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+class SendMessageDto {
+  content: string;
+}
+
+@Controller('trips/:tripId/messages')
+export class ChatController {
+  constructor(private chatService: ChatService) {}
+
+  // GET /api/trips/:tripId/messages
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async listMessages(@Request() req, @Param('tripId') tripId: string) {
+    // Guard ensures user is authenticated, service checks membership
+    return this.chatService.getMessages(tripId);
+  }
+
+  // POST /api/trips/:tripId/messages
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  async sendMessage(
+    @Request() req,
+    @Param('tripId') tripId: string,
+    @Body() body: SendMessageDto,
+  ) {
+    const userId = req.user.id;
+    const username = req.user.username;
+    return this.chatService.sendMessage(tripId, userId, username, body.content);
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\chat\chat.gateway.ts
+================================================================================
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { ChatService } from './chat.service';
+import { PrismaService } from '../prisma/prisma.service';
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+}
+
+interface JoinRoomPayload {
+  tripId: string;
+}
+
+interface SendMessagePayload {
+  tripId: string;
+  content: string;
+}
+
+@WebSocketGateway({
+  namespace: '/chat',
+  cors: {
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+  },
+})
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
+
+  constructor(
+    private jwtService: JwtService,
+    private configService: ConfigService,
+    private chatService: ChatService,
+    private prisma: PrismaService,
+  ) {}
+
+  // Client connects
+  async handleConnection(client: Socket) {
+    try {
+      const token = this.extractTokenFromSocket(client);
+      if (!token) return client.disconnect();
+
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+        },
+      });
+
+      if (!user) {
+        client.disconnect();
+        return;
+      }
+
+      (client as any).user = user;
+      client.emit('connected', { userId: user.id, username: user.username });
+    } catch (e) {
+      client.disconnect();
+    }
+  }
+
+  handleDisconnect(client: Socket) {
+    // optional: broadcast user offline
+  }
+
+  private extractTokenFromSocket(client: Socket): string | null {
+    // Expect token in query ?token=... OR auth header
+    const tokenFromQuery = client.handshake.query?.token;
+    if (typeof tokenFromQuery === 'string') return tokenFromQuery;
+
+    const authHeader = client.handshake.headers['authorization'];
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      return authHeader.split(' ')[1];
+    }
+
+    return null;
+  }
+
+  // Client joins a trip room
+  @SubscribeMessage('joinRoom')
+  async handleJoinRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: JoinRoomPayload,
+  ) {
+    const user = (client as any).user;
+    if (!user) return client.disconnect();
+
+    const { tripId } = data;
+
+    // ensure membership
+    const member = await this.prisma.tripMember.findUnique({
+      where: {
+        tripId_userId: { tripId, userId: user.id },
+      },
+    });
+
+    if (!member) {
+      return client.emit('error', { message: 'Not a member of this trip' });
+    }
+
+    client.join(tripId);
+    client.emit('joinedRoom', { tripId });
+  }
+
+  // Client sends message
+  @SubscribeMessage('sendMessage')
+  async handleSendMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: SendMessagePayload,
+  ) {
+    const user = (client as any).user;
+    if (!user) return client.disconnect();
+
+    const { tripId, content } = data;
+
+    await this.chatService.ensureIsMember(tripId, user.id);
+
+    // Save to DB (Mongo)
+    const msg = await this.chatService.sendMessage(tripId, user.id, user.username, content);
+
+    // Broadcast to everyone in this trip room
+    const obj = msg.toObject ? msg.toObject() : (msg as any);
+
+this.server.to(tripId).emit('newMessage', {
+  id: obj._id?.toString?.() ?? obj._id,
+  tripId: obj.tripId,
+  userId: obj.userId,
+  username: obj.username,
+  content: obj.content,
+  createdAt: obj.createdAt,
+});
+
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\chat\chat.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ChatService } from './chat.service';
+import { ChatController } from './chat.controller';
+import { Message, MessageSchema } from './schemas/message.schema';
+import { TripsModule } from '../trips/trips.module';
+import { ChatGateway } from './chat.gateway';
+import { JwtModule } from '@nestjs/jwt';
+
+@Module({
+  imports: [
+    TripsModule,
+    JwtModule.register({}), // ConfigService se runtime secret lenge
+    MongooseModule.forFeature([{ name: Message.name, schema: MessageSchema }]),
+  ],
+  controllers: [ChatController],
+  providers: [ChatService, ChatGateway],
+})
+export class ChatModule {}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\chat\chat.service.ts
+================================================================================
+import { Injectable, ForbiddenException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Message, MessageDocument } from './schemas/message.schema';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class ChatService {
+  constructor(
+    @InjectModel(Message.name)
+    private readonly messageModel: Model<MessageDocument>,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  // ✅ Check if user is member of trip (UPDATED)
+  async ensureIsMember(tripId: string, userId: string) {
+    const member = await this.prisma.tripMember.findUnique({
+      where: {
+        tripId_userId: {
+          tripId,
+          userId,
+        },
+      },
+    });
+
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this trip');
+    }
+  }
+
+  // ============================
+  // Send Message
+  // ============================
+  async sendMessage(
+    tripId: string,
+    userId: string,
+    username: string,
+    content: string,
+  ) {
+    await this.ensureIsMember(tripId, userId);
+
+    const message = new this.messageModel({
+      tripId,
+      userId,
+      username,
+      content,
+      type: 'text',
+    });
+
+    return message.save();
+  }
+
+  // ============================
+  // Get Messages of a Trip
+  // ============================
+  async getMessages(tripId: string) {
+    return this.messageModel
+      .find({ tripId })
+      .sort({ createdAt: 1 })
+      .limit(200)
+      .exec();
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\chat\schemas\message.schema.ts
+================================================================================
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+
+export type MessageDocument = Message & Document;
+
+@Schema({ timestamps: true })
+export class Message {
+  @Prop({ required: true })
+  tripId: string;
+
+  @Prop({ required: true })
+  userId: string;
+
+  @Prop({ required: true })
+  username: string;
+
+  @Prop({ required: true })
+  content: string;
+
+  @Prop({ default: 'text' })
+  type: string; // "text" | "system"
+
+  @Prop({ default: false })
+  isRead: boolean;
+}
+
+export const MessageSchema = SchemaFactory.createForClass(Message);
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\common\filters\http-exception.filter.ts
+================================================================================
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { LoggerService } from '../logger/logger.service';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  constructor(private logger: LoggerService) {}
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    // Skip non-HTTP contexts (WebSocket, etc.)
+    if (host.getType() !== 'http') {
+      this.logger.error(
+        `Non-HTTP Exception: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
+        exception instanceof Error ? exception.stack : undefined,
+        'ExceptionFilter',
+      );
+      return;
+    }
+
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | object = 'Internal server error';
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+
+      if (typeof exceptionResponse === 'string') {
+        message = exceptionResponse;
+      } else if (typeof exceptionResponse === 'object') {
+        message = exceptionResponse;
+      }
+    } else if (exception instanceof Error) {
+      message = exception.message;
+    }
+
+    this.logger.error(
+      `${request.method} ${request.url} - ${status}`,
+      exception instanceof Error ? exception.stack : undefined,
+      'ExceptionFilter',
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      ...(typeof message === 'string' ? { message } : message),
+    });
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\common\interceptors\logging.interceptor.ts
+================================================================================
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { LoggerService } from '../logger/logger.service';
+
+@Injectable()
+export class LoggingInterceptor implements NestInterceptor {
+  constructor(private logger: LoggerService) {}
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    if (context.getType() !== 'http') {
+      return next.handle();
+    }
+
+    const request = context.switchToHttp().getRequest();
+    const { method, url } = request;
+    const startTime = Date.now();
+
+    return next.handle().pipe(
+      tap({
+        next: () => {
+          const response = context.switchToHttp().getResponse();
+          const duration = Date.now() - startTime;
+          this.logger.log(
+            `${method} ${url} ${response.statusCode} - ${duration}ms`,
+            'HTTP',
+          );
+        },
+        error: (error) => {
+          const duration = Date.now() - startTime;
+          this.logger.error(
+            `${method} ${url} - ${duration}ms - ${error.message}`,
+            undefined,
+            'HTTP',
+          );
+        },
+      }),
+    );
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\common\logger\logger.module.ts
+================================================================================
+import { Global, Module } from '@nestjs/common';
+import { LoggerService } from './logger.service';
+
+@Global()
+@Module({
+  providers: [LoggerService],
+  exports: [LoggerService],
+})
+export class LoggerModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\common\logger\logger.service.ts
+================================================================================
+import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
+
+@Injectable()
+export class LoggerService implements NestLoggerService {
+  log(message: string, context?: string) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [LOG] [${context || 'App'}] ${message}`);
+  }
+
+  error(message: string, trace?: string, context?: string) {
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] [ERROR] [${context || 'App'}] ${message}`);
+    if (trace) {
+      console.error(`[${timestamp}] [TRACE] ${trace}`);
+    }
+  }
+
+  warn(message: string, context?: string) {
+    const timestamp = new Date().toISOString();
+    console.warn(`[${timestamp}] [WARN] [${context || 'App'}] ${message}`);
+  }
+
+  debug(message: string, context?: string) {
+    const timestamp = new Date().toISOString();
+    console.debug(`[${timestamp}] [DEBUG] [${context || 'App'}] ${message}`);
+  }
+
+  verbose(message: string, context?: string) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [VERBOSE] [${context || 'App'}] ${message}`);
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\email\email.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
+import { EmailService } from './email.service';
+
+@Module({
+  imports: [
+    MailerModule.forRootAsync({
+      useFactory: async (config: ConfigService) => ({
+        transport: {
+          host: config.get('MAIL_HOST'),
+          port: config.get('MAIL_PORT'),
+          secure: false, // true for 465, false for other ports
+          auth: {
+            user: config.get('MAIL_USER'),
+            pass: config.get('MAIL_PASSWORD'),
+          },
+        },
+        defaults: {
+          from: `"YatraSecure" <${config.get('MAIL_FROM')}>`,
+        },
+        template: {
+          dir: join(__dirname, 'templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  providers: [EmailService],
+  exports: [EmailService],
+})
+export class EmailModule {}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\email\email.service.ts
+================================================================================
+import { Injectable } from '@nestjs/common';
+import { MailerService } from '@nestjs-modules/mailer';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class EmailService {
+  constructor(
+    private mailerService: MailerService,
+    private configService: ConfigService,
+  ) {}
+
+  // Welcome Email
+  async sendWelcomeEmail(email: string, username: string) {
+    const appUrl = this.configService.get('APP_URL') || 'http://localhost:3000';
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Welcome to YatraSecure! 🎉',
+      template: './welcome',
+      context: {
+        username,
+        appUrl,
+      },
+    });
+  }
+
+  // Join Request Notification (to Admin)
+  async sendJoinRequestNotification(
+    adminEmail: string,
+    adminName: string,
+    tripName: string,
+    requesterName: string,
+  ) {
+    const appUrl = this.configService.get('APP_URL') || 'http://localhost:3000';
+
+    await this.mailerService.sendMail({
+      to: adminEmail,
+      subject: `New Join Request for ${tripName}`,
+      template: './join-request',
+      context: {
+        adminName,
+        tripName,
+        requesterName,
+        appUrl,
+      },
+    });
+  }
+
+  // Join Request Accepted (to User)
+  async sendJoinRequestAccepted(
+    userEmail: string,
+    username: string,
+    tripName: string,
+    tripId: string,
+  ) {
+    const appUrl = this.configService.get('APP_URL') || 'http://localhost:3000';
+    const tripUrl = `${appUrl}/trips/${tripId}`;
+
+    await this.mailerService.sendMail({
+      to: userEmail,
+      subject: `🎉 Your request to join ${tripName} was accepted!`,
+      template: './request-accepted',
+      context: {
+        username,
+        tripName,
+        tripUrl,
+      },
+    });
+  }
+
+  // Join Request Rejected (to User)
+  async sendJoinRequestRejected(
+    userEmail: string,
+    username: string,
+    tripName: string,
+  ) {
+    await this.mailerService.sendMail({
+      to: userEmail,
+      subject: `Update on your request for ${tripName}`,
+      template: './request-rejected',
+      context: {
+        username,
+        tripName,
+      },
+    });
+  }
+
+  // Trip Starting Soon Reminder
+  async sendTripReminder(
+    userEmail: string,
+    username: string,
+    tripName: string,
+    startDate: Date,
+    tripId: string,
+  ) {
+    const appUrl = this.configService.get('APP_URL') || 'http://localhost:3000';
+    const tripUrl = `${appUrl}/trips/${tripId}`;
+
+    await this.mailerService.sendMail({
+      to: userEmail,
+      subject: `⏰ Reminder: ${tripName} starts soon!`,
+      template: './trip-reminder',
+      context: {
+        username,
+        tripName,
+        startDate: startDate.toLocaleDateString('en-IN', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+        tripUrl,
+      },
+    });
+  }
+
+  // Emergency SOS Alert
+  async sendSOSAlert(
+    contactEmail: string,
+    userName: string,
+    location: string,
+    tripName: string,
+  ) {
+    await this.mailerService.sendMail({
+      to: contactEmail,
+      subject: '🚨 EMERGENCY SOS ALERT - YatraSecure',
+      template: './sos-alert',
+      context: {
+        userName,
+        location,
+        tripName,
+        timestamp: new Date().toLocaleString('en-IN'),
+      },
+    });
+  }
+
+  // Password Reset Email
+  async sendPasswordResetEmail(email: string, username: string, resetToken: string) {
+    const appUrl = this.configService.get('APP_URL') || 'http://localhost:3000';
+    const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Reset Your YatraSecure Password',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Password Reset Request</h1>
+            </div>
+            <div class="content">
+              <p>Hi <strong>${username}</strong>,</p>
+              
+              <p>We received a request to reset your YatraSecure password. Click the button below to reset it:</p>
+              
+              <center>
+                <a href="${resetUrl}" class="button">Reset Password</a>
+              </center>
+              
+              <p>Or copy and paste this link in your browser:</p>
+              <p style="word-break: break-all; background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                ${resetUrl}
+              </p>
+              
+              <div class="warning">
+                <strong>⚠️ Important:</strong> This link will expire in <strong>1 hour</strong> for security reasons.
+              </div>
+              
+              <p><strong>Didn't request this?</strong><br>
+              If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
+              
+              <p>Best regards,<br>
+              <strong>YatraSecure Team</strong></p>
+            </div>
+            <div class="footer">
+              <p>This is an automated email. Please do not reply.</p>
+              <p>© 2026 YatraSecure. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+  }
+
+  // Email Verification Email
+  async sendVerificationEmail(email: string, username: string, verificationToken: string) {
+    const appUrl = this.configService.get('APP_URL') || 'http://localhost:3000';
+    const verifyUrl = `${appUrl}/verify-email?token=${verificationToken}`;
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Verify Your YatraSecure Email',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .warning { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✉️ Verify Your Email</h1>
+            </div>
+            <div class="content">
+              <p>Hi <strong>${username}</strong>,</p>
+              
+              <p>Welcome to YatraSecure! 🎉</p>
+              
+              <p>Please verify your email address to activate your account and unlock all features:</p>
+              
+              <center>
+                <a href="${verifyUrl}" class="button">Verify Email Address</a>
+              </center>
+              
+              <p>Or copy and paste this link in your browser:</p>
+              <p style="word-break: break-all; background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                ${verifyUrl}
+              </p>
+              
+              <div class="warning">
+                <strong>⏰ Important:</strong> This verification link will expire in <strong>24 hours</strong>.
+              </div>
+              
+              <p><strong>Didn't sign up?</strong><br>
+              If you didn't create an account, please ignore this email.</p>
+              
+              <p>Happy traveling!<br>
+              <strong>YatraSecure Team</strong></p>
+            </div>
+            <div class="footer">
+              <p>This is an automated email. Please do not reply.</p>
+              <p>© 2026 YatraSecure. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\email\templates\join-request.hbs
+================================================================================
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Request Accepted!</h1>
+    </div>
+    <div class="content">
+      <p>Hi <strong>{{username}}</strong>,</p>
+      <p>Great news! Your request to join <strong>"{{tripName}}"</strong> has been accepted.</p>
+      <center>
+        <a href="{{tripUrl}}" class="button">View Trip</a>
+      </center>
+      <p>Happy traveling!<br><strong>YatraSecure Team</strong></p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2026 YatraSecure. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\email\templates\request-accepted.hbs
+================================================================================
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      padding: 40px 20px;
+      text-align: center;
+      color: white;
+    }
+    .content {
+      padding: 30px;
+    }
+    .success-box {
+      background-color: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .footer {
+      background-color: #f4f4f4;
+      padding: 20px;
+      text-align: center;
+      color: #888;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Congratulations!</h1>
+    </div>
+    
+    <div class="content">
+      <h2>Hello {{username}}!</h2>
+      
+      <div class="success-box">
+        <strong>Great news!</strong> Your request to join <strong>{{tripName}}</strong> has been accepted!
+      </div>
+      
+      <p>You're now officially part of this travel group. You can:</p>
+      <ul>
+        <li>💬 Chat with group members</li>
+        <li>📅 View trip itinerary</li>
+        <li>💰 Contribute to pool wallet</li>
+        <li>📍 Share live location</li>
+      </ul>
+      
+      <a href="{{tripUrl}}" class="button">View Trip Details →</a>
+    </div>
+    
+    <div class="footer">
+      <p>© 2026 YatraSecure</p>
+    </div>
+  </div>
+</body>
+</html>
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\email\templates\request-rejected.hbs
+================================================================================
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Request Update</h1>
+    </div>
+    <div class="content">
+      <p>Hi <strong>{{username}}</strong>,</p>
+      <p>Unfortunately, your request to join <strong>"{{tripName}}"</strong> was not accepted this time.</p>
+      <p>Don't worry — there are many more trips to explore!</p>
+      <center>
+        <a href="{{appUrl}}/trips" class="button">Browse Trips</a>
+      </center>
+      <p>Best regards,<br><strong>YatraSecure Team</strong></p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2026 YatraSecure. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\email\templates\welcome.hbs
+================================================================================
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to YatraSecure!</h1>
+    </div>
+    <div class="content">
+      <p>Hi <strong>{{username}}</strong>,</p>
+      <p>Welcome aboard! Your account has been created successfully.</p>
+      <p>Start planning your next safe group trip today:</p>
+      <center>
+        <a href="{{appUrl}}/trips" class="button">Explore Trips</a>
+      </center>
+      <p>Happy traveling!<br><strong>YatraSecure Team</strong></p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2026 YatraSecure. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\expenses\expenses.controller.spec.ts
+================================================================================
+import { Test, TestingModule } from '@nestjs/testing';
+import { ExpensesController } from './expenses.controller';
+
+describe('ExpensesController', () => {
+  let controller: ExpensesController;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [ExpensesController],
+    }).compile();
+
+    controller = module.get<ExpensesController>(ExpensesController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\expenses\expenses.controller.ts
+================================================================================
+import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { ExpensesService, Settlement } from './expenses.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@Controller('trips/:tripId/expenses')
+@UseGuards(JwtAuthGuard)
+export class ExpensesController {
+  constructor(private expensesService: ExpensesService) {}
+
+  @Post()
+  async addExpense(
+    @Param('tripId') tripId: string,
+    @Body() body: { amount: number; description: string; category?: string },
+    @Req() req: any,
+  ) {
+    return this.expensesService.addExpense(
+      tripId,
+      req.user.sub,
+      body.amount,
+      body.description,
+      body.category || 'other',
+    );
+  }
+
+  @Get()
+  async getExpenses(@Param('tripId') tripId: string) {
+    return this.expensesService.getExpenses(tripId);
+  }
+
+  @Get('settlement')
+  async getSettlement(@Param('tripId') tripId: string): Promise<Settlement[]> {
+    return this.expensesService.calculateSettlement(tripId);
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\expenses\expenses.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { ExpensesService } from './expenses.service';
+import { ExpensesController } from './expenses.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [ExpensesController],
+  providers: [ExpensesService],
+  exports: [ExpensesService],
+})
+export class ExpensesModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\expenses\expenses.service.spec.ts
+================================================================================
+import { Test, TestingModule } from '@nestjs/testing';
+import { ExpensesService } from './expenses.service';
+
+describe('ExpensesService', () => {
+  let service: ExpensesService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [ExpensesService],
+    }).compile();
+
+    service = module.get<ExpensesService>(ExpensesService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+});
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\expenses\expenses.service.ts
+================================================================================
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+export interface Settlement {
+  from: string;
+  fromUsername: string;
+  to: string;
+  toUsername: string;
+  amount: number;
+}
+
+@Injectable()
+export class ExpensesService {
+  constructor(private prisma: PrismaService) {}
+
+  async addExpense(
+    tripId: string,
+    paidBy: string,
+    amount: number,
+    description: string,
+    category: string,
+  ) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        members: true,
+        wallet: true,
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    if (!trip.wallet) {
+      throw new NotFoundException('Wallet not found for this trip');
+    }
+
+    const isMember = trip.members.some((m) => m.userId === paidBy);
+    if (!isMember && trip.adminId !== paidBy) {
+      throw new ForbiddenException('Only trip members can add expenses');
+    }
+
+    const memberCount = trip.members.length;
+    const perPersonShare = amount / memberCount;
+
+    const expense = await this.prisma.expense.create({
+      data: {
+        walletId: trip.wallet.id,
+        paidBy,
+        amount,
+        description,
+        category,
+        splitType: 'equal',
+      },
+    });
+
+    const participantData = trip.members.map((member) => ({
+      expenseId: expense.id,
+      userId: member.userId,
+      share: perPersonShare,
+    }));
+
+    await this.prisma.expenseParticipant.createMany({
+      data: participantData,
+    });
+
+    await this.prisma.wallet.update({
+      where: { id: trip.wallet.id },
+      data: {
+        spent: {
+          increment: amount,
+        },
+      },
+    });
+
+    return {
+      message: 'Expense added successfully',
+      expense,
+    };
+  }
+
+  async getExpenses(tripId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: { wallet: true },
+    });
+
+    if (!trip || !trip.wallet) {
+      throw new NotFoundException('Trip or wallet not found');
+    }
+
+    return this.prisma.expense.findMany({
+      where: { walletId: trip.wallet.id },
+      include: {
+        paidByUser: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+          },
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async calculateSettlement(tripId: string): Promise<Settlement[]> {
+    const expenses = await this.getExpenses(tripId);
+
+    const balances = new Map<string, { username: string; balance: number }>();
+
+    for (const expense of expenses) {
+      const payer = expense.paidByUser;
+      if (!balances.has(payer.id)) {
+        balances.set(payer.id, { username: payer.username, balance: 0 });
+      }
+      balances.get(payer.id)!.balance += expense.amount;
+
+      for (const participant of expense.participants) {
+        if (!balances.has(participant.userId)) {
+          balances.set(participant.userId, {
+            username: participant.user.username,
+            balance: 0,
+          });
+        }
+        balances.get(participant.userId)!.balance -= participant.share;
+      }
+    }
+
+    const lendersCopy = Array.from(balances.entries())
+      .filter(([_, data]) => data.balance > 0.01)
+      .sort((a, b) => b[1].balance - a[1].balance)
+      .map(([id, data]) => ({ id, username: data.username, amount: data.balance }));
+
+    const borrowersCopy = Array.from(balances.entries())
+      .filter(([_, data]) => data.balance < -0.01)
+      .sort((a, b) => a[1].balance - b[1].balance)
+      .map(([id, data]) => ({ id, username: data.username, amount: Math.abs(data.balance) }));
+
+    const settlements: Settlement[] = [];
+    let i = 0;
+    let j = 0;
+
+    while (i < lendersCopy.length && j < borrowersCopy.length) {
+      const lender = lendersCopy[i];
+      const borrower = borrowersCopy[j];
+      const settleAmount = Math.min(lender.amount, borrower.amount);
+
+      settlements.push({
+        from: borrower.id,
+        fromUsername: borrower.username,
+        to: lender.id,
+        toUsername: lender.username,
+        amount: parseFloat(settleAmount.toFixed(2)),
+      });
+
+      lender.amount -= settleAmount;
+      borrower.amount -= settleAmount;
+
+      if (lender.amount < 0.01) i++;
+      if (borrower.amount < 0.01) j++;
+    }
+
+    return settlements;
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\join-requests\join-requests.controller.ts
+================================================================================
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { JoinRequestsService } from './join-requests.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@Controller('trips/:tripId/join-requests')
+@UseGuards(JwtAuthGuard)
+export class JoinRequestsController {
+  constructor(private joinRequestsService: JoinRequestsService) {}
+
+  @Post()
+  async create(
+    @Param('tripId') tripId: string,
+    @Body() body: { message?: string },
+    @Req() req: any,
+  ) {
+    return this.joinRequestsService.create(tripId, req.user.sub, body.message);
+  }
+
+  @Get()
+  async findAll(@Param('tripId') tripId: string, @Req() req: any) {
+    return this.joinRequestsService.findAllByTrip(tripId, req.user.sub);
+  }
+
+  @Patch(':requestId')
+  @HttpCode(HttpStatus.OK)
+  async updateStatus(
+    @Param('requestId') requestId: string,
+    @Body() body: { status: 'accepted' | 'rejected' },
+    @Req() req: any,
+  ) {
+    return this.joinRequestsService.updateStatus(requestId, body.status, req.user.sub);
+  }
+
+  @Delete(':requestId')
+  @HttpCode(HttpStatus.OK)
+  async delete(@Param('requestId') requestId: string, @Req() req: any) {
+    return this.joinRequestsService.delete(requestId, req.user.sub);
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\join-requests\join-requests.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { JoinRequestsService } from './join-requests.service';
+import { JoinRequestsController } from './join-requests.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+import { MembersModule } from '../members/members.module';
+import { EmailModule } from '../email/email.module';
+
+@Module({
+  imports: [PrismaModule, MembersModule, EmailModule],
+  controllers: [JoinRequestsController],
+  providers: [JoinRequestsService],
+})
+export class JoinRequestsModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\join-requests\join-requests.service.ts
+================================================================================
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { MembersService } from '../members/members.service';
+import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
+
+@Injectable()
+export class JoinRequestsService {
+  constructor(
+    private prisma: PrismaService,
+    private membersService: MembersService,
+    private emailService: EmailService,
+    private notificationsService: NotificationsService,
+  ) {}
+
+  async create(tripId: string, userId: string, message?: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: { admin: true },
+    });
+
+    if (!trip) throw new NotFoundException('Trip not found');
+
+    if (trip.adminId === userId) {
+      throw new BadRequestException('You are the admin of this trip');
+    }
+
+    const existingRequest = await this.prisma.joinRequest.findFirst({
+      where: { tripId, requesterId: userId },
+    });
+
+    if (existingRequest) {
+      throw new BadRequestException('You already sent a join request');
+    }
+
+    const isMember = await this.prisma.tripMember.findFirst({
+      where: { tripId, userId },
+    });
+
+    if (isMember) {
+      throw new BadRequestException('You are already a member of this trip');
+    }
+
+    const requester = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    const request = await this.prisma.joinRequest.create({
+      data: { tripId, requesterId: userId, message },
+      include: {
+        requester: {
+          select: { id: true, username: true, email: true, city: true, state: true },
+        },
+      },
+    });
+
+    // Send email to admin — match the EmailService param order
+    try {
+      if (requester) {
+        await this.emailService.sendJoinRequestNotification(
+          trip.admin.email,
+          trip.admin.username,
+          trip.name,
+          requester.username,
+        );
+      }
+    } catch (error) {
+      console.error('Failed to send email:', error);
+    }
+
+    // In-app notification for admin
+    try {
+      if (requester) {
+        await this.notificationsService.createNotification(
+          trip.adminId,
+          'join_request',
+          'New Join Request',
+          `@${requester.username} wants to join "${trip.name}"`,
+          `/trips/${tripId}/admin`,
+        );
+      }
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+    }
+
+    return request;
+  }
+
+  async findAllByTrip(tripId: string, adminId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.adminId !== adminId) {
+      throw new ForbiddenException('Only trip admin can view requests');
+    }
+
+    return this.prisma.joinRequest.findMany({
+      where: { tripId },
+      include: {
+        requester: {
+          select: { id: true, username: true, email: true, city: true, state: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateStatus(
+    requestId: string,
+    status: 'accepted' | 'rejected',
+    adminId: string,
+  ) {
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        trip: true,
+        requester: {
+          select: { id: true, username: true, email: true },
+        },
+      },
+    });
+
+    if (!request) throw new NotFoundException('Join request not found');
+    if (request.trip.adminId !== adminId) {
+      throw new ForbiddenException('Only trip admin can update requests');
+    }
+    if (request.status !== 'pending') {
+      throw new BadRequestException('Request already processed');
+    }
+
+    const updated = await this.prisma.joinRequest.update({
+      where: { id: requestId },
+      data: { status },
+    });
+
+    if (status === 'accepted') {
+      await this.membersService.addMember(request.tripId, request.requesterId);
+
+      try {
+        await this.emailService.sendJoinRequestAccepted(
+          request.requester.email,
+          request.requester.username,
+          request.trip.name,
+          request.trip.id,
+        );
+      } catch (error) {
+        console.error('Failed to send email:', error);
+      }
+
+      try {
+        await this.notificationsService.createNotification(
+          request.requesterId,
+          'join_accepted',
+          'Join Request Accepted!',
+          `Your request to join "${request.trip.name}" has been accepted`,
+          `/trips/${request.trip.id}`,
+        );
+      } catch (error) {
+        console.error('Failed to create notification:', error);
+      }
+    } else if (status === 'rejected') {
+      try {
+        await this.emailService.sendJoinRequestRejected(
+          request.requester.email,
+          request.requester.username,
+          request.trip.name,
+        );
+      } catch (error) {
+        console.error('Failed to send email:', error);
+      }
+
+      try {
+        await this.notificationsService.createNotification(
+          request.requesterId,
+          'join_rejected',
+          'Join Request Declined',
+          `Your request to join "${request.trip.name}" has been declined`,
+          '/trips',
+        );
+      } catch (error) {
+        console.error('Failed to create notification:', error);
+      }
+    }
+
+    return updated;
+  }
+
+  async findOne(requestId: string) {
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        trip: { select: { id: true, name: true, adminId: true } },
+        requester: {
+          select: { id: true, username: true, email: true, city: true, state: true },
+        },
+      },
+    });
+
+    if (!request) throw new NotFoundException('Join request not found');
+    return request;
+  }
+
+  async delete(requestId: string, userId: string) {
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { id: requestId },
+      include: { trip: true },
+    });
+
+    if (!request) throw new NotFoundException('Join request not found');
+
+    if (request.requesterId !== userId && request.trip.adminId !== userId) {
+      throw new ForbiddenException(
+        'You can only delete your own requests or requests for your trips',
+      );
+    }
+
+    await this.prisma.joinRequest.delete({ where: { id: requestId } });
+    return { message: 'Join request deleted successfully' };
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\members\members.controller.ts
+================================================================================
+import {
+  Controller,
+  Get,
+  Delete,
+  Post,
+  Param,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { MembersService } from './members.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@Controller('trips/:tripId/members')
+export class MembersController {
+  constructor(private membersService: MembersService) {}
+
+  @Get()
+  async getMembers(@Param('tripId') tripId: string) {
+    return this.membersService.getTripMembers(tripId);
+  }
+
+  @Delete(':userId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async removeMember(
+    @Param('tripId') tripId: string,
+    @Param('userId') userId: string,
+    @Req() req: any,
+  ) {
+    return this.membersService.removeMember(tripId, userId, req.user.sub);
+  }
+
+  @Post('leave')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async leaveTrip(@Param('tripId') tripId: string, @Req() req: any) {
+    return this.membersService.leaveTrip(tripId, req.user.sub);
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\members\members.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { MembersService } from './members.service';
+import { MembersController } from './members.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [MembersController],
+  providers: [MembersService],
+  exports: [MembersService],
+})
+export class MembersModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\members\members.service.ts
+================================================================================
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+
+@Injectable()
+export class MembersService {
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
+
+  // Get all members of a trip
+  async getTripMembers(tripId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    return this.prisma.tripMember.findMany({
+      where: { tripId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            city: true,
+            state: true,
+            profileImage: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+  }
+
+  // Add member to trip (called from join-requests)
+  async addMember(tripId: string, userId: string, role: string = 'member') {
+    const existing = await this.prisma.tripMember.findUnique({
+      where: {
+        tripId_userId: { tripId, userId },
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException('User is already a member of this trip');
+    }
+
+    return this.prisma.tripMember.create({
+      data: {
+        tripId,
+        userId,
+        role,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            city: true,
+            state: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Remove member (kick) — Admin only
+  async removeMember(tripId: string, userId: string, requestingUserId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    if (trip.adminId !== requestingUserId) {
+      throw new ForbiddenException('Only admin can remove members');
+    }
+
+    if (userId === trip.adminId) {
+      throw new BadRequestException('Cannot remove trip admin');
+    }
+
+    const member = await this.prisma.tripMember.findUnique({
+      where: {
+        tripId_userId: { tripId, userId },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('User is not a member of this trip');
+    }
+
+    await this.prisma.tripMember.delete({
+      where: {
+        tripId_userId: { tripId, userId },
+      },
+    });
+
+    try {
+      await this.notificationsService.createNotification(
+        userId,
+        'member_removed',
+        'Removed from Trip',
+        `You have been removed from "${trip.name}"`,
+        '/trips',
+      );
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+    }
+
+    return {
+      message: `${member.user.username} has been removed from the trip`,
+    };
+  }
+
+  // Leave trip — Any member except admin
+  async leaveTrip(tripId: string, userId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    if (trip.adminId === userId) {
+      throw new BadRequestException(
+        'Admin cannot leave trip. Transfer ownership or delete trip instead.',
+      );
+    }
+
+    const member = await this.prisma.tripMember.findUnique({
+      where: {
+        tripId_userId: { tripId, userId },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('You are not a member of this trip');
+    }
+
+    await this.prisma.tripMember.delete({
+      where: {
+        tripId_userId: { tripId, userId },
+      },
+    });
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      });
+
+      if (user) {
+        await this.notificationsService.createNotification(
+          trip.adminId,
+          'member_left',
+          'Member Left Trip',
+          `@${user.username} has left "${trip.name}"`,
+          `/trips/${tripId}/admin`,
+        );
+      }
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+    }
+
+    return {
+      message: 'You have left the trip successfully',
+    };
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\notifications\notifications.controller.spec.ts
+================================================================================
+import { Test, TestingModule } from '@nestjs/testing';
+import { NotificationsController } from './notifications.controller';
+
+describe('NotificationsController', () => {
+  let controller: NotificationsController;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [NotificationsController],
+    }).compile();
+
+    controller = module.get<NotificationsController>(NotificationsController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\notifications\notifications.controller.ts
+================================================================================
+import {
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { NotificationsService } from './notifications.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@Controller('notifications')
+@UseGuards(JwtAuthGuard)
+export class NotificationsController {
+  constructor(private notificationsService: NotificationsService) {}
+
+  @Get()
+  async getNotifications(@Req() req: any, @Query('unreadOnly') unreadOnly?: string) {
+    return this.notificationsService.getUserNotifications(
+      req.user.sub,
+      unreadOnly === 'true',
+    );
+  }
+
+  @Get('unread-count')
+  async getUnreadCount(@Req() req: any) {
+    const count = await this.notificationsService.getUnreadCount(req.user.sub);
+    return { count };
+  }
+
+  @Patch(':id/read')
+  @HttpCode(HttpStatus.OK)
+  async markAsRead(@Param('id') id: string, @Req() req: any) {
+    await this.notificationsService.markAsRead(id, req.user.sub);
+    return { message: 'Notification marked as read' };
+  }
+
+  @Patch('read-all')
+  @HttpCode(HttpStatus.OK)
+  async markAllAsRead(@Req() req: any) {
+    await this.notificationsService.markAllAsRead(req.user.sub);
+    return { message: 'All notifications marked as read' };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async deleteNotification(@Param('id') id: string, @Req() req: any) {
+    await this.notificationsService.deleteNotification(id, req.user.sub);
+    return { message: 'Notification deleted' };
+  }
+
+  @Delete('clear-read')
+  @HttpCode(HttpStatus.OK)
+  async deleteAllRead(@Req() req: any) {
+    await this.notificationsService.deleteAllRead(req.user.sub);
+    return { message: 'Read notifications cleared' };
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\notifications\notifications.module.ts
+================================================================================
+import { Global, Module } from '@nestjs/common';
+import { NotificationsService } from './notifications.service';
+import { NotificationsController } from './notifications.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+
+@Global()
+@Module({
+  imports: [PrismaModule],
+  controllers: [NotificationsController],
+  providers: [NotificationsService],
+  exports: [NotificationsService],
+})
+export class NotificationsModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\notifications\notifications.service.spec.ts
+================================================================================
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class NotificationsService {
+  constructor(private prisma: PrismaService) {}
+
+  // Create notification
+  async createNotification(
+    userId: string,
+    type: string,
+    title: string,
+    message: string,
+    link?: string,
+  ) {
+    return this.prisma.notification.create({
+      data: {
+        userId,
+        type,
+        title,
+        message,
+        link,
+      },
+    });
+  }
+
+  // Get user notifications
+  async getUserNotifications(userId: string, unreadOnly = false) {
+    const where: any = { userId };
+    if (unreadOnly) {
+      where.isRead = false;
+    }
+
+    return this.prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 50, // Limit to 50 notifications
+    });
+  }
+
+  // Get unread count
+  async getUnreadCount(userId: string) {
+    return this.prisma.notification.count({
+      where: {
+        userId,
+        isRead: false,
+      },
+    });
+  }
+
+  // Mark notification as read
+  async markAsRead(notificationId: string, userId: string) {
+    return this.prisma.notification.updateMany({
+      where: {
+        id: notificationId,
+        userId, // Ensure user owns the notification
+      },
+      data: {
+        isRead: true,
+      },
+    });
+  }
+
+  // Mark all as read
+  async markAllAsRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: {
+        userId,
+        isRead: false,
+      },
+      data: {
+        isRead: true,
+      },
+    });
+  }
+
+  // Delete notification
+  async deleteNotification(notificationId: string, userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: {
+        id: notificationId,
+        userId,
+      },
+    });
+  }
+
+  // Delete all read notifications
+  async deleteAllRead(userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: {
+        userId,
+        isRead: true,
+      },
+    });
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\notifications\notifications.service.ts
+================================================================================
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class NotificationsService {
+  constructor(private prisma: PrismaService) {}
+
+  async createNotification(
+    userId: string,
+    type: string,
+    title: string,
+    message: string,
+    link?: string,
+  ) {
+    return this.prisma.notification.create({
+      data: {
+        userId,
+        type,
+        title,
+        message,
+        link,
+      },
+    });
+  }
+
+  async getUserNotifications(userId: string, unreadOnly: boolean = false) {
+    const where: any = { userId };
+    if (unreadOnly) {
+      where.isRead = false;
+    }
+
+    return this.prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.prisma.notification.count({
+      where: { userId, isRead: false },
+    });
+  }
+
+  async markAsRead(id: string, userId: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    return this.prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
+  }
+
+  async markAllAsRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
+  async deleteNotification(id: string, userId: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    return this.prisma.notification.delete({
+      where: { id },
+    });
+  }
+
+  async deleteAllRead(userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: { userId, isRead: true },
+    });
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\prisma\prisma.module.ts
+================================================================================
+import { Global, Module } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+
+@Global() // Makes PrismaService available everywhere without importing
+@Module({
+  providers: [PrismaService],
+  exports: [PrismaService],
+})
+export class PrismaModule {}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\prisma\prisma.service.ts
+================================================================================
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  async onModuleInit() {
+    await this.$connect();
+    console.log('✅ Database connected successfully');
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+    console.log('❌ Database disconnected');
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\trips\itinerary.service.ts
+================================================================================
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class ItineraryService {
+  constructor(private configService: ConfigService) {}
+
+  async generateItinerary(
+    tripData: {
+      name: string;
+      fromCity: string;
+      toCity: string;
+      startDate: string;
+      endDate: string;
+      budget: number;
+      tripType: string;
+      description?: string;
+    },
+    customPrompt?: string,
+  ): Promise<string> {
+
+    const days = Math.ceil(
+      (new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime())
+      / (1000 * 60 * 60 * 24),
+    ) + 1;
+
+    // Extra instructions from admin (optional)
+    const extraInstructions = customPrompt?.trim()
+      ? `\n\nAdditional instructions from the trip admin (must be followed):\n${customPrompt.trim()}`
+      : '';
+
+    const prompt = `Create a detailed day-by-day travel itinerary for this Indian trip and return ONLY valid JSON (no markdown, no code blocks, no extra text):
+
+Trip: ${tripData.name}
+From: ${tripData.fromCity} → To: ${tripData.toCity}
+Duration: ${days} days (${tripData.startDate} to ${tripData.endDate})
+Budget: ₹${tripData.budget}
+Type: ${tripData.tripType}
+${tripData.description ? `Notes: ${tripData.description}` : ''}${extraInstructions}
+
+Return ONLY this exact JSON structure with no extra text before or after:
+{
+  "summary": "2-3 line trip overview",
+  "totalBudgetBreakdown": {
+    "transport": 0,
+    "accommodation": 0,
+    "food": 0,
+    "activities": 0,
+    "misc": 0
+  },
+  "days": [
+    {
+      "day": 1,
+      "date": "YYYY-MM-DD",
+      "title": "Day title",
+      "morning":   { "activity": "...", "place": "...", "tip": "...", "cost": 0 },
+      "afternoon": { "activity": "...", "place": "...", "tip": "...", "cost": 0 },
+      "evening":   { "activity": "...", "place": "...", "tip": "...", "cost": 0 },
+      "meals": { "breakfast": "...", "lunch": "...", "dinner": "..." },
+      "transport": "...",
+      "safety_tip": "...",
+      "estimated_daily_cost": 0
+    }
+  ],
+  "general_tips": ["tip1", "tip2", "tip3"],
+  "emergency_contacts": {
+    "police": "100",
+    "ambulance": "108",
+    "tourist_helpline": "1800-11-1363"
+  }
+}`;
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.configService.get('GROQ_API_KEY')}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        model:       'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert Indian travel planner. You ONLY respond with valid JSON. No markdown, no code blocks, no explanation. Just raw JSON object.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens:      3000,
+        temperature:     0.7,
+        response_format: { type: 'json_object' },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Groq API call failed');
+    }
+
+    const data = await res.json();
+    const raw  = data.choices[0].message.content as string;
+
+    // Safety: extract JSON if model accidentally wraps in markdown
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const jsonStr   = jsonMatch ? jsonMatch[0] : raw;
+
+    // Validate before returning
+    try {
+      JSON.parse(jsonStr);
+    } catch {
+      throw new Error('AI returned invalid JSON — please try regenerating');
+    }
+
+    return jsonStr;
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\trips\trips.controller.ts
+================================================================================
+import {
+  Controller, Post, Get, Patch, Delete,
+  Body, Param, Query, UseGuards, Request,
+  ForbiddenException, NotFoundException,
+} from '@nestjs/common';
+import { TripsService }           from './trips.service';
+import { ItineraryService }       from './itinerary.service';
+import { CreateTripDto }          from './dto/create-trip.dto';
+import { JoinTripDto }            from './dto/join-trip.dto';
+import { UpdateRequestStatusDto } from './dto/update-request-status.dto';
+import { JwtAuthGuard }           from '../auth/guards/jwt-auth.guard';
+
+@Controller('trips')
+export class TripsController {
+  constructor(
+    private tripsService: TripsService,
+    private itineraryService: ItineraryService,
+  ) {}
+
+  // ── Create Trip ────────────────────────────────────────────────────────────
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  async createTrip(@Request() req: any, @Body() dto: CreateTripDto) {
+    const userId = req.user.id ?? req.user.sub;
+    return this.tripsService.createTrip(userId, dto);
+  }
+
+  // ── List Trips ─────────────────────────────────────────────────────────────
+  @Get()
+  async listTrips(@Query() query: any, @Request() req: any) {
+    const userId = req?.user?.id ?? req?.user?.sub;
+    return this.tripsService.findAll(query, userId);
+  }
+
+  // ── Get Trip by ID ─────────────────────────────────────────────────────────
+  @Get(':id')
+  async getTrip(@Param('id') id: string, @Request() req: any) {
+    const userId = req?.user?.id ?? req?.user?.sub;
+    return this.tripsService.getTripById(id, userId);
+  }
+
+  // ── Update Trip ────────────────────────────────────────────────────────────
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  async updateTrip(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() updateDto: any,
+  ) {
+    const userId = req.user.id ?? req.user.sub;
+    return this.tripsService.updateTrip(id, updateDto, userId);
+  }
+
+  // ── Delete Trip ────────────────────────────────────────────────────────────
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async deleteTrip(@Request() req: any, @Param('id') id: string) {
+    const userId = req.user.id ?? req.user.sub;
+    return this.tripsService.deleteTrip(id, userId);
+  }
+
+  // ── Request to Join (Public trips) ────────────────────────────────────────
+  @Post(':id/join')
+  @UseGuards(JwtAuthGuard)
+  async joinTrip(
+    @Request() req: any,
+    @Param('id') tripId: string,
+    @Body() dto: JoinTripDto,
+  ) {
+    const userId = req.user.id ?? req.user.sub;
+    return this.tripsService.requestToJoinTrip(tripId, userId, dto);
+  }
+
+  // ── Join by Invite Code ────────────────────────────────────────────────────
+  @Post('join/invite')
+  @UseGuards(JwtAuthGuard)
+  async joinByInviteCode(
+    @Request() req: any,
+    @Body('code') code: string,
+  ) {
+    const userId = req.user.id ?? req.user.sub;
+    return this.tripsService.joinByInviteCode(code, userId);
+  }
+
+  // ── List Join Requests (Admin) ─────────────────────────────────────────────
+  @Get(':id/requests')
+  @UseGuards(JwtAuthGuard)
+  async getJoinRequests(
+    @Request() req: any,
+    @Param('id') tripId: string,
+  ) {
+    const adminId = req.user.id ?? req.user.sub;
+    return this.tripsService.listJoinRequests(tripId, adminId);
+  }
+
+  // ── Update Join Request Status (Admin) ────────────────────────────────────
+  @Patch(':id/requests/:requestId')
+  @UseGuards(JwtAuthGuard)
+  async updateJoinRequestStatus(
+    @Request() req: any,
+    @Param('id') tripId: string,
+    @Param('requestId') requestId: string,
+    @Body() dto: UpdateRequestStatusDto,
+  ) {
+    const adminId = req.user.id ?? req.user.sub;
+    return this.tripsService.updateJoinRequest(tripId, requestId, adminId, dto);
+  }
+
+  // ── List Members ───────────────────────────────────────────────────────────
+  @Get(':id/members')
+  async listMembers(@Param('id') tripId: string) {
+    return this.tripsService.listMembers(tripId);
+  }
+
+  // ── Regenerate Invite Code ─────────────────────────────────────────────────
+  @Post(':id/invite/regenerate')
+  @UseGuards(JwtAuthGuard)
+  async regenerateInviteCode(
+    @Request() req: any,
+    @Param('id') tripId: string,
+  ) {
+    const userId = req.user.id ?? req.user.sub;
+    return this.tripsService.regenerateInviteCode(tripId, userId);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ITINERARY ENDPOINTS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── Generate Itinerary with Groq AI ───────────────────────────────────────
+  @Post(':id/itinerary/generate')
+  @UseGuards(JwtAuthGuard)
+  async generateItinerary(
+    @Param('id') tripId: string,
+    @Request() req: any,
+    @Body('customPrompt') customPrompt?: string,
+  ) {
+    const userId = req.user.id ?? req.user.sub;
+
+    const trip = await this.tripsService.findById(tripId);
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.adminId !== userId)
+      throw new ForbiddenException('Only trip admin can generate itinerary');
+
+    const itinerary = await this.itineraryService.generateItinerary(
+      {
+        name:        trip.name,
+        fromCity:    trip.fromCity,
+        toCity:      trip.toCity,
+        startDate:   trip.startDate.toISOString(),
+        endDate:     trip.endDate.toISOString(),
+        budget:      trip.budget,
+        tripType:    trip.tripType,
+        description: trip.description ?? undefined,
+      },
+      customPrompt,
+    );
+
+    await this.tripsService.updateItinerary(tripId, itinerary);
+    return { itinerary };
+  }
+
+  // ── Save / Edit Itinerary ──────────────────────────────────────────────────
+  @Patch(':id/itinerary')
+  @UseGuards(JwtAuthGuard)
+  async updateItinerary(
+    @Param('id') tripId: string,
+    @Body('itinerary') itinerary: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user.id ?? req.user.sub;
+
+    const trip = await this.tripsService.findById(tripId);
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.adminId !== userId)
+      throw new ForbiddenException('Only trip admin can edit itinerary');
+
+    const updated = await this.tripsService.updateItinerary(tripId, itinerary);
+    return { itinerary: updated.itinerary };
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\trips\trips.module.ts
+================================================================================
+import { Module }           from '@nestjs/common';
+import { ConfigModule }     from '@nestjs/config';
+import { TripsService }     from './trips.service';
+import { TripsController }  from './trips.controller';
+import { ItineraryService } from './itinerary.service';
+import { PrismaModule }     from '../prisma/prisma.module';
+
+@Module({
+  imports:     [PrismaModule, ConfigModule],
+  controllers: [TripsController],
+  providers:   [TripsService, ItineraryService],
+  exports:     [TripsService],
+})
+export class TripsModule {}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\trips\trips.service.ts
+================================================================================
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateTripDto } from './dto/create-trip.dto';
+import { JoinTripDto } from './dto/join-trip.dto';
+import { UpdateRequestStatusDto } from './dto/update-request-status.dto';
+import * as crypto from 'crypto';
+
+@Injectable()
+export class TripsService {
+  constructor(private prisma: PrismaService) {}
+
+  private generateInviteCode(): string {
+    return crypto.randomBytes(4).toString('hex').toUpperCase();
+  }
+
+  // ================= CREATE TRIP =================
+  async createTrip(userId: string, dto: CreateTripDto) {
+    const { startDate, endDate, budget, isPublic = true, ...rest } = dto;
+    const inviteCode = !isPublic ? this.generateInviteCode() : null;
+
+    const trip = await this.prisma.trip.create({
+      data: {
+        ...rest,
+        budget,
+        isPublic,
+        inviteCode,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        adminId: userId,
+      },
+      include: {
+        admin: {
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
+        },
+      },
+    });
+
+    await this.prisma.tripMember.create({
+      data: { tripId: trip.id, userId, role: 'admin' },
+    });
+
+    await this.prisma.wallet.create({
+      data: { tripId: trip.id, totalBudget: budget },
+    });
+
+    return trip;
+  }
+
+  // ================= UPDATE TRIP =================
+  async updateTrip(id: string, updateTripDto: any, userId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id } });
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.adminId !== userId) throw new ForbiddenException('Only trip admin can update');
+
+    const data: any = { ...updateTripDto };
+    if (updateTripDto.startDate) data.startDate = new Date(updateTripDto.startDate);
+    if (updateTripDto.endDate)   data.endDate   = new Date(updateTripDto.endDate);
+
+    if (updateTripDto.isPublic === false && !trip.inviteCode) {
+      data.inviteCode = this.generateInviteCode();
+    }
+    if (updateTripDto.isPublic === true) {
+      data.inviteCode = null;
+    }
+
+    return this.prisma.trip.update({
+      where: { id },
+      data,
+      include: {
+        admin: {
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
+        },
+      },
+    });
+  }
+
+  // ================= DELETE TRIP =================
+  async deleteTrip(id: string, userId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id },
+      include: { members: true },
+    });
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.adminId !== userId) throw new ForbiddenException('Only trip admin can delete');
+
+    await this.prisma.$transaction([
+      this.prisma.joinRequest.deleteMany({ where: { tripId: id } }),
+      this.prisma.tripMember.deleteMany({ where: { tripId: id } }),
+      this.prisma.transaction.deleteMany({ where: { wallet: { tripId: id } } }),
+      this.prisma.expenseParticipant.deleteMany({
+        where: { expense: { wallet: { tripId: id } } },
+      }),
+      this.prisma.expense.deleteMany({ where: { wallet: { tripId: id } } }),
+      this.prisma.wallet.deleteMany({ where: { tripId: id } }),
+      this.prisma.trip.delete({ where: { id } }),
+    ]);
+
+    return { message: 'Trip deleted successfully' };
+  }
+
+  // ================= LIST TRIPS =================
+  async findAll(query: any, requestingUserId?: string) {
+    const {
+      search, fromCity, toCity,
+      minBudget, maxBudget,
+      tripType, startDate,
+      page = 1, limit = 12,
+      sortBy = 'createdAt', sortOrder = 'desc',
+      myTrips = false,
+    } = query;
+
+    let where: any;
+
+    if (myTrips && requestingUserId) {
+      where = {
+        OR: [
+          { adminId: requestingUserId },
+          { members: { some: { userId: requestingUserId } } },
+        ],
+      };
+    } else {
+      where = { isPublic: true };
+    }
+
+    if (search) {
+      const searchCondition = [
+        { name:     { contains: search, mode: 'insensitive' as const } },
+        { fromCity: { contains: search, mode: 'insensitive' as const } },
+        { toCity:   { contains: search, mode: 'insensitive' as const } },
+      ];
+      if (where.OR) {
+        where = {
+          AND: [
+            { OR: where.OR },
+            { OR: searchCondition },
+          ],
+        };
+      } else {
+        where.OR = searchCondition;
+      }
+    }
+
+    if (fromCity) where.fromCity = { contains: fromCity, mode: 'insensitive' };
+    if (toCity)   where.toCity   = { contains: toCity,   mode: 'insensitive' };
+
+    if (minBudget || maxBudget) {
+      where.budget = {};
+      if (minBudget) where.budget.gte = parseFloat(minBudget);
+      if (maxBudget) where.budget.lte = parseFloat(maxBudget);
+    }
+
+    if (tripType)  where.tripType  = { equals: tripType, mode: 'insensitive' };
+    if (startDate) where.startDate = { gte: new Date(startDate) };
+
+    const skip  = (parseInt(page) - 1) * parseInt(limit);
+    const take  = parseInt(limit);
+    const total = await this.prisma.trip.count({ where });
+
+    const orderBy: any =
+      sortBy === 'budget'    ? { budget: sortOrder }    :
+      sortBy === 'startDate' ? { startDate: sortOrder } :
+                               { createdAt: sortOrder };
+
+    const trips = await this.prisma.trip.findMany({
+      where,
+      include: {
+        admin:   { select: { id: true, username: true, city: true, state: true, profileImage: true } },
+        members: { select: { userId: true, role: true } },
+        _count:  { select: { members: true } },
+      },
+      orderBy,
+      skip,
+      take,
+    });
+
+    const sanitized = trips.map(({ inviteCode, ...t }: any) => t);
+
+    return {
+      trips: sanitized,
+      pagination: {
+        total,
+        page:       parseInt(page),
+        limit:      parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        hasMore:    skip + take < total,
+      },
+    };
+  }
+
+  // ================= GET TRIP BY ID =================
+  async getTripById(id: string, requestingUserId?: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id },
+      include: {
+        admin: {
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, username: true, city: true, state: true, profileImage: true },
+            },
+          },
+          orderBy: { joinedAt: 'asc' },
+        },
+      },
+    });
+
+    if (!trip) throw new NotFoundException('Trip not found');
+
+    const isMemberOrAdmin =
+      requestingUserId &&
+      (trip.adminId === requestingUserId ||
+        trip.members.some((m) => m.userId === requestingUserId));
+
+    if (!isMemberOrAdmin) {
+      const { inviteCode, ...rest } = trip as any;
+      return rest;
+    }
+
+    return trip;
+  }
+
+  // ================= JOIN BY INVITE CODE =================
+  async joinByInviteCode(code: string, userId: string) {
+    const trip = await this.prisma.trip.findFirst({
+      where: { inviteCode: code.toUpperCase().trim() },
+    });
+    if (!trip) throw new NotFoundException('Invalid invite code');
+
+    const existing = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId: trip.id, userId } },
+    });
+    if (existing) throw new BadRequestException('Already a member of this trip');
+
+    await this.prisma.tripMember.create({
+      data: { tripId: trip.id, userId, role: 'member' },
+    });
+
+    return { message: 'Joined trip successfully', tripId: trip.id };
+  }
+
+  // ================= REGENERATE INVITE CODE =================
+  async regenerateInviteCode(tripId: string, userId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip)                   throw new NotFoundException('Trip not found');
+    if (trip.adminId !== userId) throw new ForbiddenException('Only admin can regenerate code');
+    if (trip.isPublic)           throw new BadRequestException('Public trips do not have invite codes');
+
+    const newCode = this.generateInviteCode();
+    const updated = await this.prisma.trip.update({
+      where: { id: tripId },
+      data:  { inviteCode: newCode },
+    });
+
+    return { inviteCode: updated.inviteCode };
+  }
+
+  // ================= REQUEST TO JOIN (Public trips) =================
+  async requestToJoinTrip(tripId: string, userId: string, dto: JoinTripDto) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip)          throw new NotFoundException('Trip not found');
+    if (!trip.isPublic) throw new ForbiddenException('Private trip — use invite code to join');
+
+    const existingMember = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId, userId } },
+    });
+    if (existingMember) throw new ForbiddenException('Already a member of this trip');
+
+    const existingRequest = await this.prisma.joinRequest.findFirst({
+      where: { tripId, requesterId: userId, status: 'pending' },
+    });
+    if (existingRequest) throw new ForbiddenException('Join request already pending');
+
+    return this.prisma.joinRequest.create({
+      data: { tripId, requesterId: userId, message: dto.message },
+    });
+  }
+
+  // ================= LIST JOIN REQUESTS (Admin) =================
+  async listJoinRequests(tripId: string, adminId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip)                    throw new NotFoundException('Trip not found');
+    if (trip.adminId !== adminId) throw new ForbiddenException('Only admin can view requests');
+
+    return this.prisma.joinRequest.findMany({
+      where:   { tripId },
+      include: {
+        requester: {
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ================= UPDATE JOIN REQUEST (Admin) =================
+  async updateJoinRequest(
+    tripId: string,
+    requestId: string,
+    adminId: string,
+    dto: UpdateRequestStatusDto,
+  ) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip)                    throw new NotFoundException('Trip not found');
+    if (trip.adminId !== adminId) throw new ForbiddenException('Only admin can manage requests');
+
+    const joinRequest = await this.prisma.joinRequest.findUnique({ where: { id: requestId } });
+    if (!joinRequest) throw new NotFoundException('Join request not found');
+
+    const updated = await this.prisma.joinRequest.update({
+      where: { id: requestId },
+      data:  { status: dto.status },
+    });
+
+    if (dto.status === 'accepted') {
+      const already = await this.prisma.tripMember.findUnique({
+        where: { tripId_userId: { tripId, userId: joinRequest.requesterId } },
+      });
+      if (!already) {
+        await this.prisma.tripMember.create({
+          data: { tripId, userId: joinRequest.requesterId, role: 'member' },
+        });
+      }
+    }
+
+    return updated;
+  }
+
+  // ================= LIST MEMBERS =================
+  async listMembers(tripId: string) {
+    return this.prisma.tripMember.findMany({
+      where:   { tripId },
+      include: {
+        user: {
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+  }
+
+  // ================= FIND BY ID (internal) =================
+  async findById(tripId: string) {
+    return this.prisma.trip.findUnique({
+      where: { id: tripId },
+    });
+  }
+
+  // ================= UPDATE ITINERARY =================
+  async updateItinerary(tripId: string, itinerary: string) {
+    return this.prisma.trip.update({
+      where: { id: tripId },
+      data:  { itinerary },
+    });
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\trips\dto\create-trip.dto.ts
+================================================================================
+import { IsString, IsNumber, IsBoolean, IsDateString, Min, MaxLength, IsOptional } from 'class-validator';
+
+export class CreateTripDto {
+  @IsString()
+  @MaxLength(100)
+  name: string;
+
+  @IsString()
+  @MaxLength(100)
+  fromCity: string;
+
+  @IsString()
+  @MaxLength(100)
+  toCity: string;
+
+  @IsDateString()
+  startDate: string;
+
+  @IsDateString()
+  endDate: string;
+
+  @IsNumber()
+  @Min(0)
+  budget: number;
+
+  @IsString()
+  tripType: string; // "solo" | "group" | "family" etc.
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\trips\dto\join-trip.dto.ts
+================================================================================
+import { IsString, IsOptional, MaxLength } from 'class-validator';
+
+export class JoinTripDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  message?: string;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\trips\dto\update-request-status.dto.ts
+================================================================================
+import { IsString } from 'class-validator';
+
+export class UpdateRequestStatusDto {
+  @IsString()
+  status: 'accepted' | 'rejected';
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\upload\upload.controller.spec.ts
+================================================================================
+import { Test, TestingModule } from '@nestjs/testing';
+import { UploadController } from './upload.controller';
+
+describe('UploadController', () => {
+  let controller: UploadController;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UploadController],
+    }).compile();
+
+    controller = module.get<UploadController>(UploadController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\upload\upload.controller.ts
+================================================================================
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  UseGuards,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UploadService } from './upload.service';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Controller('upload')
+@UseGuards(JwtAuthGuard)
+export class UploadController {
+  constructor(
+    private uploadService: UploadService,
+    private prisma: PrismaService,
+  ) {}
+
+  @Post('profile-picture')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: require('multer').diskStorage({
+        destination: './uploads/profiles',
+        filename: (_req: any, file: any, callback: any) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = require('path').extname(file.originalname);
+          callback(null, `profile-${uniqueSuffix}${ext}`);
+        },
+      }),
+      fileFilter: (_req: any, file: any, callback: any) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+          return callback(new Error('Only image files are allowed!'), false);
+        }
+        callback(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  async uploadProfilePicture(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const fileUrl = this.uploadService.getFileUrl(file.filename);
+
+    await this.prisma.user.update({
+      where: { id: req.user.sub },
+      data: { profileImage: fileUrl },
+    });
+
+    return {
+      message: 'Profile picture uploaded successfully',
+      url: fileUrl,
+    };
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\upload\upload.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { UploadService } from './upload.service';
+import { UploadController } from './upload.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [UploadController],
+  providers: [UploadService],
+})
+export class UploadModule {}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\upload\upload.service.spec.ts
+================================================================================
+import { Test, TestingModule } from '@nestjs/testing';
+import { UploadService } from './upload.service';
+
+describe('UploadService', () => {
+  let service: UploadService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [UploadService],
+    }).compile();
+
+    service = module.get<UploadService>(UploadService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+});
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\upload\upload.service.ts
+================================================================================
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class UploadService {
+  getFileUrl(filename: string): string {
+    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+    return `${baseUrl}/uploads/profiles/${filename}`;
+  }
+}
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\users\users.controller.ts
+================================================================================
+import { Controller, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+
+@Controller('users')
+export class UsersController {
+  constructor(private usersService: UsersService) {}
+
+  // GET /api/users/me - Get current logged-in user
+  @Get('me')
+  @UseGuards(JwtAuthGuard) // 👈 Protected route
+  async getCurrentUser(@Request() req) {
+    return req.user; // User is attached by JWT strategy
+  }
+
+  // PATCH /api/users/me - Update current user profile
+  @Patch('me')
+  @UseGuards(JwtAuthGuard) // 👈 Protected route
+  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+    const userId = req.user.id;
+    return this.usersService.updateProfile(userId, updateProfileDto);
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\users\users.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { UsersController } from './users.controller';
+
+@Module({
+  controllers: [UsersController], // 👈 Controller add kiya
+  providers: [UsersService],
+  exports: [UsersService],
+})
+export class UsersModule {}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\users\users.service.ts
+================================================================================
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
+
+@Injectable()
+export class UsersService {
+  constructor(private prisma: PrismaService) {}
+
+  async create(email: string, username: string, password: string) {
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingEmail) {
+      throw new ConflictException('Email already registered');
+    }
+
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username },
+    });
+    if (existingUsername) {
+      throw new ConflictException('Username already taken');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        createdAt: true,
+      },
+    });
+
+    return user;
+  }
+
+  async findByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+    });
+  }
+
+  async findById(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        profileImage: true,
+        bio: true,
+        age: true,
+        city: true,
+        state: true,
+        travelStyle: true,
+        budgetRange: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  // NEW: Update user profile
+  async updateProfile(
+    userId: string,
+    data: {
+      bio?: string;
+      age?: number;
+      city?: string;
+      state?: string;
+      travelStyle?: string[];
+      budgetRange?: string;
+    },
+  ) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        profileImage: true,
+        bio: true,
+        age: true,
+        city: true,
+        state: true,
+        travelStyle: true,
+        budgetRange: true,
+        updatedAt: true,
+      },
+    });
+
+    return user;
+  }
+
+  async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+    return bcrypt.compare(password, hashedPassword);
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\users\dto\update-profile.dto.ts
+================================================================================
+import { IsString, IsInt, IsArray, IsOptional, Min, Max, MaxLength } from 'class-validator';
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500, { message: 'Bio must not exceed 500 characters' })
+  bio?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(18, { message: 'Age must be at least 18' })
+  @Max(100, { message: 'Age must not exceed 100' })
+  age?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  state?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  travelStyle?: string[];
+
+  @IsOptional()
+  @IsString()
+  budgetRange?: string;
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\wallet\wallet.controller.ts
+================================================================================
+import { Controller, Get, Post, Param, Body, UseGuards, Request } from '@nestjs/common';
+import { WalletService } from './wallet.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+class ContributionDto {
+  amount: number;
+  description?: string;
+}
+
+@Controller('wallets')
+@UseGuards(JwtAuthGuard)
+export class WalletController {
+  constructor(private walletService: WalletService) {}
+
+  // GET /api/wallets/:tripId
+  @Get(':tripId')
+  async getWallet(@Request() req, @Param('tripId') tripId: string) {
+    return this.walletService.getWallet(tripId, req.user.id);
+  }
+
+  // POST /api/wallets/:tripId/transactions
+  @Post(':tripId/transactions')
+  async addContribution(
+    @Request() req,
+    @Param('tripId') tripId: string,
+    @Body() body: ContributionDto,
+  ) {
+    return this.walletService.addContribution(tripId, req.user.id, body.amount, body.description);
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\wallet\wallet.module.ts
+================================================================================
+import { Module } from '@nestjs/common';
+import { WalletService } from './wallet.service';
+import { WalletController } from './wallet.controller';
+
+@Module({
+  controllers: [WalletController],
+  providers: [WalletService],
+})
+export class WalletModule {}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\src\wallet\wallet.service.ts
+================================================================================
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class WalletService {
+  constructor(private prisma: PrismaService) {}
+
+  // Get wallet for a trip (only members)
+  async getWallet(tripId: string, userId: string) {
+    const member = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId, userId } },
+    });
+    if (!member) throw new ForbiddenException('Not a member of this trip');
+
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { tripId },
+      include: {
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+      },
+    });
+
+    if (!wallet) throw new NotFoundException('Wallet not found');
+
+    return wallet;
+  }
+
+  // Add contribution (no Stripe yet, just fake for now)
+  async addContribution(tripId: string, userId: string, amount: number, description?: string) {
+    const member = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId, userId } },
+    });
+    if (!member) throw new ForbiddenException('Not a member of this trip');
+
+    const wallet = await this.prisma.wallet.findUnique({ where: { tripId } });
+    if (!wallet) throw new NotFoundException('Wallet not found');
+
+    const tx = await this.prisma.transaction.create({
+      data: {
+        walletId: wallet.id,
+        userId,
+        type: 'contribution',
+        amount,
+        description: description ?? 'Manual contribution',
+      },
+    });
+
+    await this.prisma.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        collected: wallet.collected + amount,
+      },
+    });
+
+    return tx;
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\test\app.e2e-spec.ts
+================================================================================
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { AppModule } from './../src/app.module';
+
+describe('AppController (e2e)', () => {
+  let app: INestApplication<App>;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  it('/ (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/')
+      .expect(200)
+      .expect('Hello World!');
+  });
+});
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-api\test\jest-e2e.json
+================================================================================
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  }
+}
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-web\.env.local
+================================================================================
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_WS_URL=http://localhost:3001
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-web\.gitignore
+================================================================================
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-web\README.md
+================================================================================
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-web\eslint.config.mjs
+================================================================================
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-web\next-env.d.ts
+================================================================================
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+import "./.next/dev/types/routes.d.ts";
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-web\next.config.ts
+================================================================================
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  reactCompiler: true,
+};
+
+export default nextConfig;
+
+
+================================================================================
+FILE: D:\yatrasecure\yatrasecure-web\package-lock.json
+================================================================================
