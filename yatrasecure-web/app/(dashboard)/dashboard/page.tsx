@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Plus, MapPin, Users, Calendar, Wallet,
   TrendingUp, ArrowRight, Clock, Globe, Lock,
   Compass, Bell, Shield, Phone, AlertTriangle,
-  Hospital, Building2, Train
+  Hospital, Building2, Train, Loader2
 } from "lucide-react";
 import { fetchWithAuth } from "@/app/lib/api";
 import JoinByInviteCode from "@/components/JoinByInviteCode";
@@ -15,7 +15,7 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// ─── TRIP CARD ─────────────────────────────────────────────────
+// ─── TRIP CARD ─────────────────────────────────────────────
 function TripCard({ trip }: { trip: any }) {
   const router = useRouter();
   const daysLeft = Math.ceil((new Date(trip.startDate).getTime() - Date.now()) / 86400000);
@@ -93,7 +93,19 @@ function TripCard({ trip }: { trip: any }) {
   );
 }
 
-// ─── NEARBY PLACE ITEM ─────────────────────────────────────────
+// ─── HAVERSINE DISTANCE ───────────────────────────────────
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ─── NEARBY PLACE ITEM ─────────────────────────────────────
 function NearbyPlaceItem({ place }: { place: any }) {
   return (
     <div style={{
@@ -125,75 +137,95 @@ function NearbyPlaceItem({ place }: { place: any }) {
   );
 }
 
-// ─── SAFETY & NEARBY SECTION ───────────────────────────────────
-function SafetyNearbySection() {
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+// ─── TYPES FOR NEARBY DATA ─────────────────────────────────
+type PlaceInfo = { name: string; address: string; distance: string; type?: string };
+type NearbyData = {
+  hospitals: PlaceInfo[];
+  policeStations: PlaceInfo[];
+  transitStations: PlaceInfo[];
+};
+
+// ─── SAFETY & NEARBY SECTION ───────────────────────────────
+function SafetyNearbySection({ onDataReady }: {
+  onDataReady: (data: { locationName: string; nearbyPlaces: NearbyData }) => void;
+}) {
   const [locationName, setLocationName] = useState("Detecting location...");
-  const [nearbyPlaces, setNearbyPlaces] = useState<any>({
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyData>({
     hospitals: [], policeStations: [], transitStations: []
   });
   const [loading, setLoading] = useState(true);
-  const [safetyScore] = useState(Math.floor(Math.random() * 21) + 70); // dummy 70-90
+  const [safetyScore] = useState(Math.floor(Math.random() * 21) + 70);
+  const dataReported = useRef(false);
+
+  const reportData = useCallback((locName: string, places: NearbyData) => {
+    if (!dataReported.current) {
+      dataReported.current = true;
+      onDataReady({ locationName: locName, nearbyPlaces: places });
+    }
+  }, [onDataReady]);
+
+  const fallbackPlaces: NearbyData = {
+    hospitals: [
+      { name: "City Hospital", address: "Near Main Road", distance: "1.2 km" },
+      { name: "Apollo Clinic", address: "Sector 15", distance: "2.5 km" },
+      { name: "Max Healthcare", address: "NH-48", distance: "3.8 km" },
+    ],
+    policeStations: [
+      { name: "Central Police Station", address: "Civil Lines", distance: "0.8 km" },
+      { name: "City Kotwali", address: "Old City Area", distance: "2.1 km" },
+    ],
+    transitStations: [
+      { name: "Central Railway Station", address: "Station Road", distance: "1.5 km", type: "railway" },
+      { name: "ISBT Bus Stand", address: "GT Road", distance: "2.0 km", type: "bus" },
+      { name: "Metro Station Blue Line", address: "Sector 21", distance: "3.2 km", type: "metro" },
+    ],
+  };
 
   useEffect(() => {
     if (!navigator.geolocation) {
       setLocationName("Location not supported");
+      setNearbyPlaces(fallbackPlaces);
       setLoading(false);
+      reportData("Location not supported", fallbackPlaces);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
-        setLocation({ lat: latitude, lng: longitude });
+        let locName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
-        // Reverse geocode for location name
+        // Reverse geocode
         try {
           const geoRes = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
           );
           const geoData = await geoRes.json();
           const addr = geoData.address;
-          setLocationName(
-            `${addr?.suburb || addr?.neighbourhood || addr?.village || ""}, ${addr?.city || addr?.town || addr?.state || ""}`
-          );
-        } catch {
-          setLocationName(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-        }
+          locName = `${addr?.suburb || addr?.neighbourhood || addr?.village || ""}, ${addr?.city || addr?.town || addr?.state || ""}`;
+        } catch { /* keep coords */ }
 
-        // Fetch nearby places using Overpass API
-        await fetchNearbyPlaces(latitude, longitude);
+        setLocationName(locName);
+
+        // Fetch nearby with Overpass
+        const places = await fetchNearbyPlaces(latitude, longitude);
+        setNearbyPlaces(places);
         setLoading(false);
+        reportData(locName, places);
       },
       () => {
         setLocationName("Location permission denied");
+        setNearbyPlaces(fallbackPlaces);
         setLoading(false);
-        // Show dummy data
-        setNearbyPlaces({
-          hospitals: [
-            { name: "City Hospital", address: "Near Main Road", distance: "1.2 km" },
-            { name: "Apollo Clinic", address: "Sector 15", distance: "2.5 km" },
-            { name: "Max Healthcare", address: "NH-48", distance: "3.8 km" },
-          ],
-          policeStations: [
-            { name: "Central Police Station", address: "Civil Lines", distance: "0.8 km" },
-            { name: "City Kotwali", address: "Old City Area", distance: "2.1 km" },
-          ],
-          transitStations: [
-            { name: "Central Railway Station", address: "Station Road", distance: "1.5 km", type: "railway" },
-            { name: "ISBT Bus Stand", address: "GT Road", distance: "2.0 km", type: "bus" },
-            { name: "Metro Station Blue Line", address: "Sector 21", distance: "3.2 km", type: "metro" },
-          ],
-        });
+        reportData("Location permission denied", fallbackPlaces);
       }
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function fetchNearbyPlaces(lat: number, lon: number) {
-    const radius = 5000; // 5km
-
+  async function fetchNearbyPlaces(lat: number, lon: number): Promise<NearbyData> {
+    const radius = 5000;
     try {
-      // Overpass API query for hospitals, police, transit
       const query = `
         [out:json][timeout:10];
         (
@@ -214,9 +246,9 @@ function SafetyNearbySection() {
       });
       const data = await res.json();
 
-      const hospitals: any[] = [];
-      const policeStations: any[] = [];
-      const transitStations: any[] = [];
+      const hospitals: PlaceInfo[] = [];
+      const policeStations: PlaceInfo[] = [];
+      const transitStations: PlaceInfo[] = [];
 
       data.elements?.forEach((el: any) => {
         const dist = getDistance(lat, lon, el.lat, el.lon);
@@ -240,47 +272,14 @@ function SafetyNearbySection() {
         }
       });
 
-      setNearbyPlaces({
-        hospitals: hospitals.length > 0 ? hospitals : [
-          { name: "No hospital found nearby", address: "Try expanding search area", distance: "-" }
-        ],
-        policeStations: policeStations.length > 0 ? policeStations : [
-          { name: "No police station found nearby", address: "Try expanding search area", distance: "-" }
-        ],
-        transitStations: transitStations.length > 0 ? transitStations : [
-          { name: "No transit station found nearby", address: "Try expanding search area", distance: "-" }
-        ],
-      });
+      return {
+        hospitals: hospitals.length > 0 ? hospitals : fallbackPlaces.hospitals,
+        policeStations: policeStations.length > 0 ? policeStations : fallbackPlaces.policeStations,
+        transitStations: transitStations.length > 0 ? transitStations : fallbackPlaces.transitStations,
+      };
     } catch {
-      // Fallback dummy data
-      setNearbyPlaces({
-        hospitals: [
-          { name: "City Hospital", address: "Near Main Road", distance: "1.2 km" },
-          { name: "Apollo Clinic", address: "Sector 15", distance: "2.5 km" },
-          { name: "Max Healthcare", address: "NH-48", distance: "3.8 km" },
-        ],
-        policeStations: [
-          { name: "Central Police Station", address: "Civil Lines", distance: "0.8 km" },
-          { name: "City Kotwali", address: "Old City Area", distance: "2.1 km" },
-        ],
-        transitStations: [
-          { name: "Central Railway Station", address: "Station Road", distance: "1.5 km", type: "railway" },
-          { name: "ISBT Bus Stand", address: "GT Road", distance: "2.0 km", type: "bus" },
-          { name: "Metro Station Blue Line", address: "Sector 21", distance: "3.2 km", type: "metro" },
-        ],
-      });
+      return fallbackPlaces;
     }
-  }
-
-  function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   const scoreColor = safetyScore >= 80 ? "#22c55e" : safetyScore >= 60 ? "#fbbf24" : "#ef4444";
@@ -296,9 +295,7 @@ function SafetyNearbySection() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <MapPin style={{ width: 11, height: 11, color: "#64748b" }} />
-            <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
-              {locationName}
-            </p>
+            <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>{locationName}</p>
           </div>
         </div>
         <div style={{
@@ -310,9 +307,7 @@ function SafetyNearbySection() {
             width: 46, height: 46, borderRadius: "50%", background: "#0d1829",
             display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
           }}>
-            <p style={{ fontSize: 16, fontWeight: 900, color: scoreColor, margin: 0, lineHeight: 1 }}>
-              {safetyScore}
-            </p>
+            <p style={{ fontSize: 16, fontWeight: 900, color: scoreColor, margin: 0, lineHeight: 1 }}>{safetyScore}</p>
             <p style={{ fontSize: 8, color: "#64748b", margin: 0 }}>SAFE</p>
           </div>
         </div>
@@ -320,11 +315,7 @@ function SafetyNearbySection() {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 20 }}>
-          <div style={{
-            width: 24, height: 24, border: "3px solid rgba(249,115,22,0.2)",
-            borderTop: "3px solid #f97316", borderRadius: "50%",
-            animation: "spin 1s linear infinite", margin: "0 auto 10px",
-          }} />
+          <Loader2 style={{ width: 24, height: 24, color: "#f97316", animation: "spin 1s linear infinite", margin: "0 auto 10px", display: "block" }} />
           <p style={{ fontSize: 12, color: "#475569" }}>Finding nearby places...</p>
         </div>
       ) : (
@@ -334,7 +325,7 @@ function SafetyNearbySection() {
             <p style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>
               🏥 Nearest Hospitals ({nearbyPlaces.hospitals.length})
             </p>
-            {nearbyPlaces.hospitals.map((h: any, i: number) => (
+            {nearbyPlaces.hospitals.map((h, i) => (
               <NearbyPlaceItem key={i} place={{
                 ...h,
                 icon: <Hospital style={{ width: 14, height: 14, color: "#ef4444" }} />,
@@ -348,7 +339,7 @@ function SafetyNearbySection() {
             <p style={{ fontSize: 11, fontWeight: 700, color: "#3b82f6", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>
               🚔 Police Stations ({nearbyPlaces.policeStations.length})
             </p>
-            {nearbyPlaces.policeStations.map((p: any, i: number) => (
+            {nearbyPlaces.policeStations.map((p, i) => (
               <NearbyPlaceItem key={i} place={{
                 ...p,
                 icon: <Building2 style={{ width: 14, height: 14, color: "#3b82f6" }} />,
@@ -362,7 +353,7 @@ function SafetyNearbySection() {
             <p style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>
               🚆 Railway / Metro / Bus ({nearbyPlaces.transitStations.length})
             </p>
-            {nearbyPlaces.transitStations.map((t: any, i: number) => (
+            {nearbyPlaces.transitStations.map((t, i) => (
               <NearbyPlaceItem key={i} place={{
                 ...t,
                 icon: <Train style={{ width: 14, height: 14, color: "#22c55e" }} />,
@@ -376,33 +367,39 @@ function SafetyNearbySection() {
   );
 }
 
-// ─── SOS SECTION ───────────────────────────────────────────────
-function SOSSection() {
+// ─── SOS SECTION ───────────────────────────────────────────
+function SOSSection({ userName, safetyData }: {
+  userName: string;
+  safetyData: { locationName: string; nearbyPlaces: NearbyData } | null;
+}) {
   const [contacts, setContacts] = useState<{ name: string; phone: string }[]>([]);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Load from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('sos_contacts');
-    if (stored) setContacts(JSON.parse(stored));
+    if (stored) {
+      try { setContacts(JSON.parse(stored)); } catch { /* ignore */ }
+    }
   }, []);
 
-  // Save to localStorage
   function saveContacts(updated: { name: string; phone: string }[]) {
     setContacts(updated);
     localStorage.setItem('sos_contacts', JSON.stringify(updated));
   }
 
   function addContact() {
-    if (!newName.trim() || !newPhone.trim()) return;
+    if (!newName.trim() || !newPhone.trim()) {
+      alert('Name aur Phone dono bharo'); return;
+    }
     const phone = newPhone.replace(/\D/g, '');
     if (phone.length < 10) {
-      alert('Enter valid 10-digit phone number');
-      return;
+      alert('Valid 10-digit phone number daalo'); return;
     }
-    const updated = [...contacts, { name: newName.trim(), phone }];
+    const updated = [...contacts, { name: newName.trim(), phone: phone.slice(-10) }];
     saveContacts(updated);
     setNewName(''); setNewPhone(''); setShowAdd(false);
   }
@@ -412,37 +409,89 @@ function SOSSection() {
     saveContacts(updated);
   }
 
+  function buildSOSMessage(latitude: number, longitude: number): string {
+    const mapsLink = `https://maps.google.com/maps?q=${latitude},${longitude}`;
+    const now = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+    let msg = `🆘 *SOS EMERGENCY ALERT!*\n\n`;
+    msg += `👤 *Name:* ${userName || 'YatraSecure User'}\n`;
+    msg += `🕐 *Time:* ${now}\n\n`;
+
+    // Location
+    msg += `📍 *Current Location:*\n`;
+    if (safetyData?.locationName && safetyData.locationName !== "Detecting location...") {
+      msg += `${safetyData.locationName}\n`;
+    }
+    msg += `${mapsLink}\n\n`;
+
+    // Nearby Hospitals
+    if (safetyData?.nearbyPlaces?.hospitals && safetyData.nearbyPlaces.hospitals.length > 0) {
+      msg += `🏥 *Nearest Hospitals:*\n`;
+      safetyData.nearbyPlaces.hospitals.forEach((h, i) => {
+        msg += `${i + 1}. ${h.name} (${h.distance}) - ${h.address}\n`;
+      });
+      msg += `\n`;
+    }
+
+    // Nearby Police
+    if (safetyData?.nearbyPlaces?.policeStations && safetyData.nearbyPlaces.policeStations.length > 0) {
+      msg += `🚔 *Nearest Police Stations:*\n`;
+      safetyData.nearbyPlaces.policeStations.forEach((p, i) => {
+        msg += `${i + 1}. ${p.name} (${p.distance}) - ${p.address}\n`;
+      });
+      msg += `\n`;
+    }
+
+    // Nearby Transit
+    if (safetyData?.nearbyPlaces?.transitStations && safetyData.nearbyPlaces.transitStations.length > 0) {
+      msg += `🚆 *Nearby Transit:*\n`;
+      safetyData.nearbyPlaces.transitStations.forEach((t, i) => {
+        msg += `${i + 1}. ${t.name} (${t.distance}) - ${t.address}\n`;
+      });
+      msg += `\n`;
+    }
+
+    msg += `⚠️ *Please help me or contact authorities immediately!*\n`;
+    msg += `_Sent via YatraSecure SOS_`;
+
+    return msg;
+  }
+
   function sendSOS() {
     if (contacts.length === 0) {
-      alert('Please add at least one SOS contact first!');
-      return;
+      alert('Pehle kam se kam ek SOS contact add karo!'); return;
     }
 
     if (!navigator.geolocation) {
-      alert('Location not supported on this device');
-      return;
+      alert('Location supported nahi hai is device pe'); return;
     }
+
+    setSending(true);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        const mapsLink = `https://maps.google.com/maps?q=${latitude},${longitude}`;
-        const message = `🆘 SOS EMERGENCY! I need help! My live location: ${mapsLink}`;
+        const message = buildSOSMessage(latitude, longitude);
+        const encodedMsg = encodeURIComponent(message);
 
-        // Open WhatsApp for first contact
+        // Open WhatsApp for ALL contacts one by one
         contacts.forEach((c, i) => {
-          const phone = c.phone.startsWith('91') ? c.phone : `91${c.phone}`;
-          const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-          if (i === 0) {
+          const phone = c.phone.length === 10 ? `91${c.phone}` : c.phone;
+          const whatsappUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
+
+          // Stagger by 1.5 second to avoid browser blocking
+          setTimeout(() => {
             window.open(whatsappUrl, '_blank');
-          } else {
-            setTimeout(() => window.open(whatsappUrl, '_blank'), i * 1500);
-          }
+          }, i * 1500);
         });
+
+        setSending(false);
       },
       () => {
-        alert('Location permission denied. Cannot send SOS.');
-      }
+        alert('Location permission denied. SOS bhej nahi sakte.');
+        setSending(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
@@ -466,7 +515,7 @@ function SOSSection() {
           </div>
           <div>
             <p style={{ fontSize: 14, fontWeight: 700, color: "white", margin: 0 }}>SOS Emergency</p>
-            <p style={{ fontSize: 11, color: "#475569", margin: 0 }}>Send live location on WhatsApp</p>
+            <p style={{ fontSize: 11, color: "#475569", margin: 0 }}>WhatsApp pe sab contacts ko alert</p>
           </div>
         </div>
         <button
@@ -498,8 +547,9 @@ function SOSSection() {
               style={inputStyle}
               placeholder="Phone (10 digit)"
               value={newPhone}
-              onChange={e => setNewPhone(e.target.value)}
+              onChange={e => setNewPhone(e.target.value.replace(/\D/g, ''))}
               maxLength={10}
+              inputMode="numeric"
             />
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -526,7 +576,7 @@ function SOSSection() {
       {/* Contact list */}
       {contacts.length === 0 ? (
         <p style={{ fontSize: 12, color: "#334155", textAlign: "center", padding: "14px 0" }}>
-          No SOS contacts added yet. Add emergency contacts above.
+          No SOS contacts yet. Add emergency contacts above.
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
@@ -553,9 +603,31 @@ function SOSSection() {
         </div>
       )}
 
+      {/* What will be sent preview */}
+      {contacts.length > 0 && (
+        <div style={{
+          padding: "8px 12px", borderRadius: 8, marginBottom: 12,
+          background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.1)",
+        }}>
+          <p style={{ fontSize: 10, color: "#22c55e", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase" }}>
+            📨 Message will include:
+          </p>
+          <p style={{ fontSize: 11, color: "#475569", margin: 0, lineHeight: 1.6 }}>
+            ✅ Your name ({userName || 'User'}) &nbsp;
+            ✅ Google Maps live location link &nbsp;
+            ✅ Current location address &nbsp;
+            ✅ Nearest hospitals &nbsp;
+            ✅ Police stations &nbsp;
+            ✅ Transit stations &nbsp;
+            → Sent to <b style={{ color: "#f97316" }}>{contacts.length} contact{contacts.length > 1 ? 's' : ''}</b>
+          </p>
+        </div>
+      )}
+
       {/* SOS Button */}
       <button
         onClick={sendSOS}
+        disabled={sending || contacts.length === 0}
         style={{
           width: "100%", height: 48, borderRadius: 12,
           background: contacts.length > 0
@@ -563,34 +635,41 @@ function SOSSection() {
             : "rgba(148,163,184,0.08)",
           border: contacts.length > 0 ? "none" : "1px solid rgba(148,163,184,0.12)",
           color: contacts.length > 0 ? "white" : "#475569",
-          fontSize: 15, fontWeight: 800, cursor: contacts.length > 0 ? "pointer" : "not-allowed",
+          fontSize: 15, fontWeight: 800,
+          cursor: contacts.length > 0 ? "pointer" : "not-allowed",
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           boxShadow: contacts.length > 0 ? "0 6px 20px rgba(239,68,68,0.4)" : "none",
           transition: "all 0.2s",
+          opacity: sending ? 0.7 : 1,
         }}
       >
-        <AlertTriangle style={{ width: 18, height: 18 }} />
-        🆘 SEND SOS
+        {sending ? (
+          <><Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> Sending SOS...</>
+        ) : (
+          <><AlertTriangle style={{ width: 18, height: 18 }} /> 🆘 SEND SOS TO ALL ({contacts.length})</>
+        )}
       </button>
       <p style={{ fontSize: 10, color: "#334155", textAlign: "center", marginTop: 6 }}>
-        Opens WhatsApp with your live location for each contact
+        WhatsApp pe sabhi {contacts.length} contacts ko detailed SOS message jaayega
       </p>
     </div>
   );
 }
 
-// ─── MAIN DASHBOARD PAGE ───────────────────────────────────────
+// ─── MAIN DASHBOARD PAGE ───────────────────────────────────
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [safetyData, setSafetyData] = useState<{ locationName: string; nearbyPlaces: NearbyData } | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (!stored) { router.push("/login"); return; }
     setUser(JSON.parse(stored));
     fetchTrips();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchTrips() {
@@ -613,6 +692,10 @@ export default function DashboardPage() {
       setLoading(false);
     }
   }
+
+  const handleSafetyDataReady = useCallback((data: { locationName: string; nearbyPlaces: NearbyData }) => {
+    setSafetyData(data);
+  }, []);
 
   const upcoming = trips.filter(t => new Date(t.startDate) > new Date()).slice(0, 4);
   const hour = new Date().getHours();
@@ -664,8 +747,8 @@ export default function DashboardPage() {
         <JoinByInviteCode />
       </div>
 
-      {/* ── MAIN GRID ── */}
-      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "1fr" }} className="xl:grid-cols-[1fr_340px]">
+      {/* ── MAIN GRID: Left (Trips+Actions) | Right (Safety+SOS) ── */}
+      <div style={{ display: "grid", gap: 20, gridTemplateColumns: "1fr" }} className="xl:grid-cols-[1fr_380px]">
 
         {/* LEFT COLUMN */}
         <div>
@@ -781,8 +864,11 @@ export default function DashboardPage() {
 
         {/* RIGHT COLUMN — Safety + SOS */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <SafetyNearbySection />
-          <SOSSection />
+          <SafetyNearbySection onDataReady={handleSafetyDataReady} />
+          <SOSSection
+            userName={user?.username || user?.firstName || 'User'}
+            safetyData={safetyData}
+          />
         </div>
       </div>
     </div>

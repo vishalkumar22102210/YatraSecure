@@ -114,9 +114,13 @@ export class TripsService {
       myTrips = false,
     } = query;
 
+    // Convert myTrips string "true" to boolean
+    const isMyTrips = myTrips === true || myTrips === 'true';
+
     let where: any;
 
-    if (myTrips && requestingUserId) {
+    if (isMyTrips && requestingUserId) {
+      // My Trips → show ALL trips where user is admin or member (public + private)
       where = {
         OR: [
           { adminId: requestingUserId },
@@ -124,6 +128,7 @@ export class TripsService {
         ],
       };
     } else {
+      // Browse → only public trips
       where = { isPublic: true };
     }
 
@@ -178,10 +183,18 @@ export class TripsService {
       take,
     });
 
-    const sanitized = trips.map(({ inviteCode, ...t }: any) => t);
+    // ★ KEY FIX: Only strip inviteCode for public browsing, NOT for myTrips
+    let resultTrips;
+    if (isMyTrips && requestingUserId) {
+      // My Trips → keep inviteCode so frontend can show it
+      resultTrips = trips;
+    } else {
+      // Public browse → remove inviteCode for security
+      resultTrips = trips.map(({ inviteCode, ...t }: any) => t);
+    }
 
     return {
-      trips: sanitized,
+      trips: resultTrips,
       pagination: {
         total,
         page:       parseInt(page),
@@ -264,42 +277,46 @@ export class TripsService {
   // ================= REQUEST TO JOIN (Public trips) =================
   async requestToJoinTrip(tripId: string, userId: string, dto: JoinTripDto) {
     const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
-    if (!trip)          throw new NotFoundException('Trip not found');
-    if (!trip.isPublic) throw new ForbiddenException('Private trip — use invite code to join');
+    if (!trip) throw new NotFoundException('Trip not found');
 
     const existingMember = await this.prisma.tripMember.findUnique({
       where: { tripId_userId: { tripId, userId } },
     });
-    if (existingMember) throw new ForbiddenException('Already a member of this trip');
+    if (existingMember) throw new BadRequestException('Already a member');
 
     const existingRequest = await this.prisma.joinRequest.findFirst({
-      where: { tripId, requesterId: userId, status: 'pending' },
+      where: { tripId, userId, status: 'pending' },
     });
-    if (existingRequest) throw new ForbiddenException('Join request already pending');
+    if (existingRequest) throw new BadRequestException('Request already pending');
 
     return this.prisma.joinRequest.create({
-      data: { tripId, requesterId: userId, message: dto.message },
+      data: { tripId, userId, message: dto.message },
+      include: {
+        user: {
+          select: { id: true, username: true, profileImage: true },
+        },
+      },
     });
   }
 
-  // ================= LIST JOIN REQUESTS (Admin) =================
+  // ================= LIST JOIN REQUESTS =================
   async listJoinRequests(tripId: string, adminId: string) {
     const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
-    if (!trip)                    throw new NotFoundException('Trip not found');
+    if (!trip) throw new NotFoundException('Trip not found');
     if (trip.adminId !== adminId) throw new ForbiddenException('Only admin can view requests');
 
     return this.prisma.joinRequest.findMany({
-      where:   { tripId },
+      where: { tripId },
       include: {
-        requester: {
-          select: { id: true, username: true, city: true, state: true, profileImage: true },
+        user: {
+          select: { id: true, username: true, profileImage: true, city: true, state: true },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  // ================= UPDATE JOIN REQUEST (Admin) =================
+  // ================= UPDATE JOIN REQUEST =================
   async updateJoinRequest(
     tripId: string,
     requestId: string,
@@ -307,24 +324,27 @@ export class TripsService {
     dto: UpdateRequestStatusDto,
   ) {
     const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
-    if (!trip)                    throw new NotFoundException('Trip not found');
+    if (!trip) throw new NotFoundException('Trip not found');
     if (trip.adminId !== adminId) throw new ForbiddenException('Only admin can manage requests');
 
-    const joinRequest = await this.prisma.joinRequest.findUnique({ where: { id: requestId } });
-    if (!joinRequest) throw new NotFoundException('Join request not found');
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { id: requestId },
+    });
+    if (!request) throw new NotFoundException('Request not found');
+    if (request.tripId !== tripId) throw new BadRequestException('Request does not belong to this trip');
 
     const updated = await this.prisma.joinRequest.update({
       where: { id: requestId },
-      data:  { status: dto.status },
+      data: { status: dto.status },
     });
 
     if (dto.status === 'accepted') {
-      const already = await this.prisma.tripMember.findUnique({
-        where: { tripId_userId: { tripId, userId: joinRequest.requesterId } },
+      const existingMember = await this.prisma.tripMember.findUnique({
+        where: { tripId_userId: { tripId, userId: request.userId } },
       });
-      if (!already) {
+      if (!existingMember) {
         await this.prisma.tripMember.create({
-          data: { tripId, userId: joinRequest.requesterId, role: 'member' },
+          data: { tripId, userId: request.userId, role: 'member' },
         });
       }
     }
@@ -334,29 +354,57 @@ export class TripsService {
 
   // ================= LIST MEMBERS =================
   async listMembers(tripId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new NotFoundException('Trip not found');
+
     return this.prisma.tripMember.findMany({
-      where:   { tripId },
+      where: { tripId },
       include: {
         user: {
-          select: { id: true, username: true, city: true, state: true, profileImage: true },
+          select: {
+            id: true, username: true, firstName: true, lastName: true,
+            city: true, state: true, profileImage: true,
+          },
         },
       },
       orderBy: { joinedAt: 'asc' },
     });
   }
 
-  // ================= FIND BY ID (internal) =================
-  async findById(tripId: string) {
-    return this.prisma.trip.findUnique({
-      where: { id: tripId },
+  // ================= REMOVE MEMBER =================
+  async removeMember(tripId: string, memberId: string, adminId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.adminId !== adminId) throw new ForbiddenException('Only admin can remove members');
+    if (memberId === adminId) throw new BadRequestException('Admin cannot remove themselves');
+
+    const member = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId, userId: memberId } },
     });
+    if (!member) throw new NotFoundException('Member not found');
+
+    await this.prisma.tripMember.delete({
+      where: { tripId_userId: { tripId, userId: memberId } },
+    });
+
+    return { message: 'Member removed successfully' };
   }
 
-  // ================= UPDATE ITINERARY =================
-  async updateItinerary(tripId: string, itinerary: string) {
-    return this.prisma.trip.update({
-      where: { id: tripId },
-      data:  { itinerary },
+  // ================= LEAVE TRIP =================
+  async leaveTrip(tripId: string, userId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.adminId === userId) throw new BadRequestException('Admin cannot leave their own trip');
+
+    const member = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId, userId } },
     });
+    if (!member) throw new NotFoundException('Not a member of this trip');
+
+    await this.prisma.tripMember.delete({
+      where: { tripId_userId: { tripId, userId } },
+    });
+
+    return { message: 'Left trip successfully' };
   }
 }

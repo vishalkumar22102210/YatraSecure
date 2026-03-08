@@ -9,6 +9,7 @@ import { CreateTripDto }          from './dto/create-trip.dto';
 import { JoinTripDto }            from './dto/join-trip.dto';
 import { UpdateRequestStatusDto } from './dto/update-request-status.dto';
 import { JwtAuthGuard }           from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard }   from '../auth/guards/optional-jwt-auth.guard';
 
 @Controller('trips')
 export class TripsController {
@@ -17,7 +18,7 @@ export class TripsController {
     private itineraryService: ItineraryService,
   ) {}
 
-  // ── Create Trip ────────────────────────────────────────────────────────────
+  // ── Create Trip ──────────────────────────────────────────────────────────────
   @Post()
   @UseGuards(JwtAuthGuard)
   async createTrip(@Request() req: any, @Body() dto: CreateTripDto) {
@@ -25,21 +26,23 @@ export class TripsController {
     return this.tripsService.createTrip(userId, dto);
   }
 
-  // ── List Trips ─────────────────────────────────────────────────────────────
+  // ── List Trips ────���──────────────────────────────────────────────────────────
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   async listTrips(@Query() query: any, @Request() req: any) {
-    const userId = req?.user?.id ?? req?.user?.sub;
+    const userId = req?.user?.id ?? req?.user?.sub ?? undefined;
     return this.tripsService.findAll(query, userId);
   }
 
-  // ── Get Trip by ID ─────────────────────────────────────────────────────────
+  // ── Get Trip by ID ───────────────────────────────────────────────────────────
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   async getTrip(@Param('id') id: string, @Request() req: any) {
-    const userId = req?.user?.id ?? req?.user?.sub;
+    const userId = req?.user?.id ?? req?.user?.sub ?? undefined;
     return this.tripsService.getTripById(id, userId);
   }
 
-  // ── Update Trip ────────────────────────────────────────────────────────────
+  // ── Update Trip ──────────────────────────────────────────────────────────────
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   async updateTrip(
@@ -51,7 +54,7 @@ export class TripsController {
     return this.tripsService.updateTrip(id, updateDto, userId);
   }
 
-  // ── Delete Trip ────────────────────────────────────────────────────────────
+  // ── Delete Trip ──────────────────────────────────────────────────────────────
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async deleteTrip(@Request() req: any, @Param('id') id: string) {
@@ -59,7 +62,7 @@ export class TripsController {
     return this.tripsService.deleteTrip(id, userId);
   }
 
-  // ── Request to Join (Public trips) ────────────────────────────────────────
+  // ── Request to Join (Public trips) ──────────────────────────────────────────
   @Post(':id/join')
   @UseGuards(JwtAuthGuard)
   async joinTrip(
@@ -71,7 +74,7 @@ export class TripsController {
     return this.tripsService.requestToJoinTrip(tripId, userId, dto);
   }
 
-  // ── Join by Invite Code ────────────────────────────────────────────────────
+  // ── Join by Invite Code ──────────────────────────────────────────────────────
   @Post('join/invite')
   @UseGuards(JwtAuthGuard)
   async joinByInviteCode(
@@ -82,7 +85,7 @@ export class TripsController {
     return this.tripsService.joinByInviteCode(code, userId);
   }
 
-  // ── List Join Requests (Admin) ─────────────────────────────────────────────
+  // ── List Join Requests (Admin) ───────────────────────────────────────────────
   @Get(':id/requests')
   @UseGuards(JwtAuthGuard)
   async getJoinRequests(
@@ -93,7 +96,7 @@ export class TripsController {
     return this.tripsService.listJoinRequests(tripId, adminId);
   }
 
-  // ── Update Join Request Status (Admin) ────────────────────────────────────
+  // ── Update Join Request Status (Admin) ──────────────────────────────────────
   @Patch(':id/requests/:requestId')
   @UseGuards(JwtAuthGuard)
   async updateJoinRequestStatus(
@@ -106,13 +109,13 @@ export class TripsController {
     return this.tripsService.updateJoinRequest(tripId, requestId, adminId, dto);
   }
 
-  // ── List Members ───────────────────────────────────────────────────────────
+  // ── List Members ─────────────────────────────────────────────────────────────
   @Get(':id/members')
   async listMembers(@Param('id') tripId: string) {
     return this.tripsService.listMembers(tripId);
   }
 
-  // ── Regenerate Invite Code ─────────────────────────────────────────────────
+  // ── Regenerate Invite Code ───────────────────────────────────────────────────
   @Post(':id/invite/regenerate')
   @UseGuards(JwtAuthGuard)
   async regenerateInviteCode(
@@ -123,11 +126,11 @@ export class TripsController {
     return this.tripsService.regenerateInviteCode(tripId, userId);
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════════
   // ITINERARY ENDPOINTS
-  // ══════════════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════════
 
-  // ── Generate Itinerary with Groq AI ───────────────────────────────────────
+  // ── Generate Itinerary with Groq AI ─────────────────────────────────────────
   @Post(':id/itinerary/generate')
   @UseGuards(JwtAuthGuard)
   async generateItinerary(
@@ -160,7 +163,7 @@ export class TripsController {
     return { itinerary };
   }
 
-  // ── Save / Edit Itinerary ──────────────────────────────────────────────────
+  // ── Save / Edit Itinerary ────────────────────────────────────────────────────
   @Patch(':id/itinerary')
   @UseGuards(JwtAuthGuard)
   async updateItinerary(

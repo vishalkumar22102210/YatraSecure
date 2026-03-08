@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import {
   ArrowLeft, MapPin, Calendar, Wallet,
   Users, FileText, Globe, Lock, Loader2, Plus,
+  Copy, Check, KeyRound, X,
 } from 'lucide-react';
 import { API_BASE_URL, getAccessToken } from '@/app/lib/api';
 
@@ -36,6 +37,14 @@ export default function CreateTripPage() {
   const [isPublic,    setIsPublic]    = useState(true);
   const [loading,     setLoading]     = useState(false);
   const [errors,      setErrors]      = useState<Record<string, string>>({});
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  // ── Invite Code Modal State ──
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [createdTripId, setCreatedTripId] = useState('');
+  const [createdInviteCode, setCreatedInviteCode] = useState('');
+  const [createdTripName, setCreatedTripName] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // ── Validation ──
   function validate() {
@@ -89,7 +98,6 @@ export default function CreateTripPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // Validation errors from backend
         if (res.status === 400 && Array.isArray(data.message)) {
           const be: Record<string, string> = {};
           (data.message as string[]).forEach((msg) => {
@@ -109,12 +117,38 @@ export default function CreateTripPage() {
       }
 
       toast.success(`Trip "${data.name}" created!`);
-      router.push(`/trips/${data.id}`);
+
+      // If private trip → show invite code modal
+      if (!isPublic && data.inviteCode) {
+        setCreatedTripId(data.id);
+        setCreatedInviteCode(data.inviteCode);
+        setCreatedTripName(data.name);
+        setShowInviteModal(true);
+      } else {
+        router.push(`/trips?tab=mine`);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Network error');
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleCopyCode() {
+    navigator.clipboard.writeText(createdInviteCode);
+    setCopied(true);
+    toast.success('Invite code copied!');
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleShareWhatsApp() {
+    const msg = encodeURIComponent(
+      `🚀 *Join my private trip "${createdTripName}" on YatraSecure!*\n\n` +
+      `🔑 Invite Code: *${createdInviteCode}*\n\n` +
+      `Go to Dashboard → "Join Private Trip" → Enter this code\n\n` +
+      `_Sent via YatraSecure_`
+    );
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
   }
 
   // ── Duration preview ──
@@ -126,24 +160,140 @@ export default function CreateTripPage() {
         )
       : null;
 
-  // ── Styles ──
-  const inputBase: React.CSSProperties = {
-    width: '100%', height: 44, padding: '0 14px',
-    borderRadius: 10, fontSize: 14, color: '#E2E8F0',
-    background: '#0F172A',
-    border: '1px solid rgba(148,163,184,0.12)',
-    outline: 'none', transition: 'border-color 0.15s',
-  };
-  const inputErr: React.CSSProperties = {
-    ...inputBase, borderColor: '#EF4444',
-  };
+  // ── Styles — NO shorthand border mixing ──
+  function getBorderColor(field: string): string {
+    if (focusedField === field) return '#7C3AED';
+    if (errors[field]) return '#EF4444';
+    return 'rgba(148,163,184,0.12)';
+  }
 
   function inp(field: string): React.CSSProperties {
-    return errors[field] ? inputErr : inputBase;
+    return {
+      width: '100%', height: 44, padding: '0 14px',
+      borderRadius: 10, fontSize: 14, color: '#E2E8F0',
+      background: '#0F172A',
+      borderWidth: 1, borderStyle: 'solid',
+      borderColor: getBorderColor(field),
+      outline: 'none', transition: 'border-color 0.15s',
+    };
   }
 
   return (
     <div className="anim-in" style={{ maxWidth: 640, margin: '0 auto' }}>
+
+      {/* ══ INVITE CODE MODAL ══ */}
+      {showInviteModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 20,
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 440, borderRadius: 20, padding: 32,
+            background: '#111827',
+            borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(124,58,237,0.3)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            textAlign: 'center', position: 'relative',
+          }}>
+            {/* Close */}
+            <button
+              onClick={() => { setShowInviteModal(false); router.push(`/trips?tab=mine`); }}
+              style={{
+                position: 'absolute', top: 14, right: 14,
+                background: 'none', borderWidth: 0, borderStyle: 'none', borderColor: 'transparent',
+                cursor: 'pointer', padding: 4,
+              }}
+            >
+              <X style={{ width: 18, height: 18, color: '#64748b' }} />
+            </button>
+
+            {/* Icon */}
+            <div style={{
+              width: 60, height: 60, borderRadius: 16, margin: '0 auto 16px',
+              background: 'rgba(124,58,237,0.15)',
+              borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(124,58,237,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <KeyRound style={{ width: 28, height: 28, color: '#a78bfa' }} />
+            </div>
+
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 6 }}>
+              Private Trip Created! 🎉
+            </h2>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
+              Share this invite code with your friends so they can join <b style={{ color: '#a78bfa' }}>{createdTripName}</b>
+            </p>
+
+            {/* Code Display */}
+            <div style={{
+              padding: '16px 20px', borderRadius: 14, marginBottom: 16,
+              background: 'rgba(15,23,42,0.8)',
+              borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(124,58,237,0.4)',
+            }}>
+              <p style={{ fontSize: 10, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+                Invite Code
+              </p>
+              <p style={{
+                fontSize: 32, fontWeight: 900, color: '#a78bfa',
+                letterSpacing: '0.2em', fontFamily: 'monospace', margin: 0,
+              }}>
+                {createdInviteCode}
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <button
+                onClick={handleCopyCode}
+                style={{
+                  flex: 1, height: 44, borderRadius: 10,
+                  background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(124,58,237,0.15)',
+                  borderWidth: 1, borderStyle: 'solid',
+                  borderColor: copied ? 'rgba(34,197,94,0.3)' : 'rgba(124,58,237,0.3)',
+                  color: copied ? '#22c55e' : '#a78bfa',
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {copied ? <Check style={{ width: 14, height: 14 }} /> : <Copy style={{ width: 14, height: 14 }} />}
+                {copied ? 'Copied!' : 'Copy Code'}
+              </button>
+              <button
+                onClick={handleShareWhatsApp}
+                style={{
+                  flex: 1, height: 44, borderRadius: 10,
+                  background: 'rgba(34,197,94,0.15)',
+                  borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(34,197,94,0.3)',
+                  color: '#22c55e', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                📱 Share on WhatsApp
+              </button>
+            </div>
+
+            {/* Go to trip */}
+            <button
+              onClick={() => { setShowInviteModal(false); router.push(`/trips?tab=mine`); }}
+              style={{
+                width: '100%', height: 46, borderRadius: 10,
+                background: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
+                borderWidth: 0, borderStyle: 'none', borderColor: 'transparent',
+                color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
+              }}
+            >
+              Go to Trip →
+            </button>
+
+            <p style={{ fontSize: 11, color: '#334155', marginTop: 10 }}>
+              💡 You can also find this code on the trip detail page
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
@@ -152,7 +302,7 @@ export default function CreateTripPage() {
           style={{
             width: 38, height: 38, borderRadius: 10,
             background: 'rgba(148,163,184,0.06)',
-            border: '1px solid rgba(148,163,184,0.1)',
+            borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(148,163,184,0.1)',
             cursor: 'pointer', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
           }}
@@ -184,8 +334,8 @@ export default function CreateTripPage() {
               value={name}
               onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
               maxLength={100}
-              onFocus={e  => { e.target.style.borderColor = '#7C3AED'; }}
-              onBlur={e   => { e.target.style.borderColor = errors.name ? '#EF4444' : 'rgba(148,163,184,0.12)'; }}
+              onFocus={() => setFocusedField('name')}
+              onBlur={() => setFocusedField(null)}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
               {errors.name && <p style={{ fontSize: 12, color: '#EF4444' }}>{errors.name}</p>}
@@ -205,8 +355,8 @@ export default function CreateTripPage() {
                 placeholder="Delhi"
                 value={fromCity}
                 onChange={e => { setFromCity(e.target.value); setErrors(p => ({ ...p, fromCity: '' })); }}
-                onFocus={e => { e.target.style.borderColor = '#7C3AED'; }}
-                onBlur={e  => { e.target.style.borderColor = errors.fromCity ? '#EF4444' : 'rgba(148,163,184,0.12)'; }}
+                onFocus={() => setFocusedField('fromCity')}
+                onBlur={() => setFocusedField(null)}
               />
               {errors.fromCity && <p style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>{errors.fromCity}</p>}
             </div>
@@ -220,8 +370,8 @@ export default function CreateTripPage() {
                 placeholder="Goa"
                 value={toCity}
                 onChange={e => { setToCity(e.target.value); setErrors(p => ({ ...p, toCity: '' })); }}
-                onFocus={e => { e.target.style.borderColor = '#7C3AED'; }}
-                onBlur={e  => { e.target.style.borderColor = errors.toCity ? '#EF4444' : 'rgba(148,163,184,0.12)'; }}
+                onFocus={() => setFocusedField('toCity')}
+                onBlur={() => setFocusedField(null)}
               />
               {errors.toCity && <p style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>{errors.toCity}</p>}
             </div>
@@ -240,6 +390,8 @@ export default function CreateTripPage() {
                 min={getTodayStr()}
                 value={startDate}
                 onChange={e => { setStartDate(e.target.value); setErrors(p => ({ ...p, startDate: '' })); }}
+                onFocus={() => setFocusedField('startDate')}
+                onBlur={() => setFocusedField(null)}
               />
               {errors.startDate && <p style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>{errors.startDate}</p>}
             </div>
@@ -254,6 +406,8 @@ export default function CreateTripPage() {
                 min={startDate || getTodayStr()}
                 value={endDate}
                 onChange={e => { setEndDate(e.target.value); setErrors(p => ({ ...p, endDate: '' })); }}
+                onFocus={() => setFocusedField('endDate')}
+                onBlur={() => setFocusedField(null)}
               />
               {errors.endDate && <p style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>{errors.endDate}</p>}
             </div>
@@ -264,7 +418,7 @@ export default function CreateTripPage() {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
               borderRadius: 10, background: 'rgba(124,58,237,0.06)',
-              border: '1px solid rgba(124,58,237,0.15)',
+              borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(124,58,237,0.15)',
             }}>
               <Calendar style={{ width: 14, height: 14, color: '#A78BFA' }} />
               <p style={{ fontSize: 13, color: '#A78BFA', fontWeight: 600 }}>
@@ -291,8 +445,8 @@ export default function CreateTripPage() {
                 min="1"
                 value={budget}
                 onChange={e => { setBudget(e.target.value); setErrors(p => ({ ...p, budget: '' })); }}
-                onFocus={e => { e.target.style.borderColor = '#7C3AED'; }}
-                onBlur={e  => { e.target.style.borderColor = errors.budget ? '#EF4444' : 'rgba(148,163,184,0.12)'; }}
+                onFocus={() => setFocusedField('budget')}
+                onBlur={() => setFocusedField(null)}
               />
             </div>
             {errors.budget && <p style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>{errors.budget}</p>}
@@ -319,7 +473,8 @@ export default function CreateTripPage() {
                     padding: '8px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s',
                     background: tripType === t.value ? 'linear-gradient(135deg,#7C3AED,#4F46E5)' : 'transparent',
-                    border: `1px solid ${tripType === t.value ? 'transparent' : 'rgba(148,163,184,0.12)'}`,
+                    borderWidth: 1, borderStyle: 'solid',
+                    borderColor: tripType === t.value ? 'transparent' : 'rgba(148,163,184,0.12)',
                     color: tripType === t.value ? 'white' : '#64748B',
                     boxShadow: tripType === t.value ? '0 3px 10px rgba(124,58,237,0.3)' : 'none',
                   }}
@@ -348,7 +503,8 @@ export default function CreateTripPage() {
                     flex: 1, padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
                     transition: 'all 0.15s', textAlign: 'left',
                     background: isPublic === opt.val ? `rgba(${opt.val ? '96,165,250' : '251,191,36'},0.08)` : 'transparent',
-                    border: `1px solid ${isPublic === opt.val ? (opt.val ? 'rgba(96,165,250,0.3)' : 'rgba(251,191,36,0.3)') : 'rgba(148,163,184,0.1)'}`,
+                    borderWidth: 1, borderStyle: 'solid',
+                    borderColor: isPublic === opt.val ? (opt.val ? 'rgba(96,165,250,0.3)' : 'rgba(251,191,36,0.3)') : 'rgba(148,163,184,0.1)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -371,6 +527,21 @@ export default function CreateTripPage() {
                 </button>
               ))}
             </div>
+
+            {/* Private trip info hint */}
+            {!isPublic && (
+              <div style={{
+                marginTop: 10, padding: '10px 14px', borderRadius: 10,
+                background: 'rgba(251,191,36,0.06)',
+                borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(251,191,36,0.15)',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <KeyRound style={{ width: 14, height: 14, color: '#FBBF24', flexShrink: 0 }} />
+                <p style={{ fontSize: 12, color: '#FBBF24', margin: 0 }}>
+                  A unique invite code will be generated. Share it with friends to let them join!
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -382,15 +553,20 @@ export default function CreateTripPage() {
             </label>
             <textarea
               style={{
-                ...inputBase, height: 96, padding: '12px 14px',
+                width: '100%', height: 96, padding: '12px 14px',
+                borderRadius: 10, fontSize: 14, color: '#E2E8F0',
+                background: '#0F172A',
+                borderWidth: 1, borderStyle: 'solid',
+                borderColor: focusedField === '_desc' ? '#7C3AED' : 'rgba(148,163,184,0.12)',
+                outline: 'none', transition: 'border-color 0.15s',
                 resize: 'none', lineHeight: 1.6,
               }}
               placeholder="Tell others about your trip plans..."
               value={description}
               maxLength={500}
               onChange={e => setDescription(e.target.value)}
-              onFocus={e => { e.target.style.borderColor = '#7C3AED'; }}
-              onBlur={e  => { e.target.style.borderColor = 'rgba(148,163,184,0.12)'; }}
+              onFocus={() => setFocusedField('_desc')}
+              onBlur={() => setFocusedField(null)}
             />
             <p style={{ fontSize: 11, color: '#475569', textAlign: 'right', marginTop: 4 }}>
               {description.length}/500
@@ -406,7 +582,8 @@ export default function CreateTripPage() {
             style={{
               padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
               color: '#64748B', background: 'rgba(148,163,184,0.06)',
-              border: '1px solid rgba(148,163,184,0.1)', cursor: 'pointer',
+              borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(148,163,184,0.1)',
+              cursor: 'pointer',
             }}
           >
             Cancel
@@ -416,7 +593,8 @@ export default function CreateTripPage() {
             disabled={loading}
             style={{
               flex: 1, height: 48, borderRadius: 10, fontSize: 15, fontWeight: 700,
-              color: 'white', border: 'none',
+              color: 'white',
+              borderWidth: 0, borderStyle: 'none', borderColor: 'transparent',
               cursor: loading ? 'not-allowed' : 'pointer',
               background: loading
                 ? '#334155'

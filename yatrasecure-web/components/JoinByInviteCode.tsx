@@ -64,7 +64,7 @@ export default function JoinByInviteCode() {
             Join Private Trip
           </p>
           <p style={{ fontSize: 11, color: '#475569', margin: 0 }}>
-            Enter invite code to join
+            Enter invite code to join a private trip
           </p>
         </div>
       </div>

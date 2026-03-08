@@ -1580,7 +1580,7 @@ export default function CreateTripPage() {
       }
 
       toast.success(`Trip "${data.name}" created!`);
-      router.push(`/trips/${data.id}`);
+      router.push(`/trips?tab=mine`);
     } catch (err: any) {
       toast.error(err.message || 'Network error');
     } finally {
