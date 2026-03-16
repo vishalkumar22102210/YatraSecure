@@ -17,6 +17,8 @@ import { LoggerModule } from './common/logger/logger.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { UploadModule } from './upload/upload.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SocialModule } from './social/social.module';
+import { MatchmakingModule } from './common/matchmaking/matchmaking.module';
 
 @Module({
   imports: [
@@ -27,7 +29,13 @@ import { NotificationsModule } from './notifications/notifications.module';
 
     MongooseModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
-        uri: config.get('MONGODB_URI'),
+        uri: config.get('MONGODB_URI') || 'mongodb://localhost:27017/yatrasecure',
+        // Resilience: don't crash the app if MongoDB is down
+        serverSelectionTimeoutMS: 3000,
+        connectTimeoutMS: 5000,
+        retryAttempts: 1,
+        retryDelay: 1000,
+        lazyConnection: true,
       }),
       inject: [ConfigService],
     }),
@@ -35,7 +43,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 20,
+        limit: 100,
       },
     ]),
 
@@ -56,6 +64,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     UploadModule,
 
     NotificationsModule,
+    SocialModule,
+    MatchmakingModule,
   ],
   controllers: [AppController],
   providers: [

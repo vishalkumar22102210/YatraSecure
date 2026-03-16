@@ -62,4 +62,47 @@ export class UploadController {
       url: fileUrl,
     };
   }
+
+  @Post('trip-photo/:tripId')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: require('multer').diskStorage({
+        destination: (req: any, file: any, cb: any) => {
+          const fs = require('fs');
+          const path = `./uploads/trips/${req.params.tripId}`;
+          if (!fs.existsSync(path)) fs.mkdirSync(path, { recursive: true });
+          cb(null, path);
+        },
+        filename: (_req: any, file: any, cb: any) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = require('path').extname(file.originalname);
+          cb(null, `photo-${uniqueSuffix}${ext}`);
+        },
+      }),
+      fileFilter: (_req: any, file: any, cb: any) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+          return cb(new Error('Only image files are allowed!'), false);
+        }
+        cb(null, true);
+      },
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    }),
+  )
+  async uploadTripPhoto(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+
+    // Make url easily accessible (e.g. static served from main.ts?)
+    // This is a bit hacky depending on how static files are served.
+    // Assuming /uploads route points to root uploads dir
+    const tripId = req.params.tripId;
+    const fileUrl = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api','') || 'http://localhost:5000'}/uploads/trips/${tripId}/${file.filename}`;
+
+    return {
+      message: 'Trip photo uploaded successfully',
+      url: fileUrl,
+    };
+  }
 }

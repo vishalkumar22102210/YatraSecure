@@ -57,22 +57,37 @@
 
 @layer components {
 
-  /* Cards */
+  /* ─── Cards ─────────────────────────────────────────── */
   .card {
     background: #1a2744;
     border: 1px solid #1e293b;
     border-radius: 16px;
   }
   .card-hover {
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
   }
   .card-hover:hover {
     border-color: rgba(249,115,22,0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 20px rgba(249,115,22,0.06);
   }
 
-  /* Buttons */
+  /* Glassmorphism card */
+  .glass-card {
+    background: rgba(26,39,68,0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  }
+  .glass-card:hover {
+    border-color: rgba(249,115,22,0.25);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3), 0 0 24px rgba(249,115,22,0.05);
+  }
+
+  /* ─── Buttons ───────────────────────────────────────── */
   .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -86,14 +101,28 @@
     border-radius: 12px;
     padding: 12px 22px;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    transition: opacity 0.2s, transform 0.2s, box-shadow 0.3s;
     box-shadow: 0 4px 14px rgba(249,115,22,0.35);
     font-family: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0 0 24px rgba(249,115,22,0.5), 0 0 48px rgba(249,115,22,0.2);
   }
   .btn-primary:hover:not(:disabled) {
-    opacity: 0.92;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(249,115,22,0.45);
+    opacity: 0.95;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(249,115,22,0.5);
+  }
+  .btn-primary:hover:not(:disabled)::after {
+    opacity: 1;
   }
   .btn-primary:disabled {
     opacity: 0.55;
@@ -109,16 +138,17 @@
     color: #94a3b8;
     font-weight: 600;
     font-size: 14px;
-    border: 1px solid #1e293b;
+    border: 1px solid #2d3f5e;
     border-radius: 12px;
     padding: 12px 22px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s;
     font-family: inherit;
   }
   .btn-ghost:hover:not(:disabled) {
     border-color: #f97316;
     color: #f97316;
+    background: rgba(249,115,22,0.06);
   }
 
   .btn-danger {
@@ -142,7 +172,7 @@
     border-color: rgba(239,68,68,0.4);
   }
 
-  /* Input field shorthand */
+  /* ─── Form ──────────────────────────────────────────── */
   .input-field {
     width: 100%;
     background: rgba(15,23,42,0.8);
@@ -164,7 +194,7 @@
     box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
   }
 
-  /* Badge */
+  /* ─── Badge ─────────────────────────────────────────── */
   .badge {
     display: inline-flex;
     align-items: center;
@@ -175,7 +205,7 @@
     font-weight: 600;
   }
 
-  /* Page header */
+  /* ─── Page Header ───────────────────────────────────── */
   .page-header {
     display: flex;
     align-items: center;
@@ -195,12 +225,128 @@
     color: #475569;
     margin-top: 3px;
   }
+
+  /* ─── Gradient text ─────────────────────────────────── */
+  .gradient-text {
+    background: linear-gradient(135deg, #f97316, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── Avatar Stack ──────────────────────────────────── */
+  .avatar-stack {
+    display: flex;
+    align-items: center;
+  }
+  .avatar-stack > * {
+    margin-left: -10px;
+    border: 2px solid #0f172a;
+    border-radius: 50%;
+  }
+  .avatar-stack > *:first-child {
+    margin-left: 0;
+  }
+
+  /* ─── Category Image Cards ──────────────────────────── */
+  .category-card {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 3/4;
+    transition: transform 0.35s, box-shadow 0.35s;
+  }
+  .category-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+  }
+  .category-card .cat-bg {
+    position: absolute;
+    inset: 0;
+    transition: transform 0.5s;
+  }
+  .category-card:hover .cat-bg {
+    transform: scale(1.1);
+  }
+  .category-card .cat-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%);
+  }
+  .category-card .cat-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    z-index: 2;
+  }
+
+  /* ─── Trip Card ─────────────────────────────────────── */
+  .trip-card {
+    background: rgba(26,39,68,0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 24px;
+    cursor: pointer;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  }
+  .trip-card:hover {
+    border-color: rgba(249,115,22,0.35);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  }
+
+  /* ─── Demo Card ─────────────────────────────────────── */
+  .demo-card {
+    background: rgba(26,39,68,0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 18px;
+    overflow: hidden;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  }
+  .demo-card:hover {
+    border-color: rgba(249,115,22,0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+  }
+  .demo-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .demo-card-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .demo-card-body {
+    padding: 20px;
+  }
 }
 
-/* Animations */
+/* ─── Animations ──────────────────────────────────────── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0;  }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(249,115,22,0.2); }
+  50%      { box-shadow: 0 0 40px rgba(249,115,22,0.4); }
 }
 @keyframes shake {
   0%,100% { transform: translateX(0);   }
@@ -215,6 +361,60 @@
   0%,100% { opacity: 1;   }
   50%      { opacity: 0.4; }
 }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
 
-.anim-in    { animation: fadeUp 0.35s ease-out forwards; }
-.anim-shake { animation: shake 0.3s ease-in-out; }
+.anim-in          { animation: fadeUp 0.5s ease-out forwards; }
+.anim-in-delay    { animation: fadeUp 0.5s ease-out 0.15s forwards; opacity: 0; }
+.anim-in-delay-2  { animation: fadeUp 0.5s ease-out 0.3s forwards; opacity: 0; }
+.anim-in-delay-3  { animation: fadeUp 0.5s ease-out 0.45s forwards; opacity: 0; }
+.anim-float       { animation: float 4s ease-in-out infinite; }
+.anim-glow        { animation: glowPulse 3s ease-in-out infinite; }
+.anim-shake       { animation: shake 0.3s ease-in-out; }
+.anim-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(249,115,22,0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* ─── Responsive helpers ──────────────────────────────── */
+@media (max-width: 768px) {
+  .hero-split {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+  .hero-split .hero-text {
+    align-items: center !important;
+  }
+  .hero-split .hero-mockup {
+    max-width: 100% !important;
+    margin-top: 40px !important;
+  }
+  .stats-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .trips-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .demo-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .steps-timeline {
+    padding-left: 0 !important;
+  }
+  .create-trip-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .footer-inner {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+}

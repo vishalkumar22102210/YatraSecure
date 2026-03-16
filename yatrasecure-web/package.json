@@ -12,6 +12,7 @@
     "@fontsource/inter": "^5.2.8",
     "@nestjs-modules/mailer": "^2.0.2",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.36.0",
     "handlebars": "^4.7.8",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
@@ -22,6 +23,9 @@
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0",
     "react-leaflet": "^5.0.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.0",
+    "remark-gfm": "^4.0.1",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {

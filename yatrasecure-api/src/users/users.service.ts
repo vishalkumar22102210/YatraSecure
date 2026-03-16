@@ -59,7 +59,10 @@ export class UsersService {
         city: true,
         state: true,
         travelStyle: true,
-        budgetRange: true,
+        budgetRange: true, // @ts-ignore
+        travelPersonality: true, // @ts-ignore
+        reputationScore: true, // @ts-ignore
+        isVerified: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -82,6 +85,7 @@ export class UsersService {
       state?: string;
       travelStyle?: string[];
       budgetRange?: string;
+      travelPersonality?: string;
     },
   ) {
     const user = await this.prisma.user.update({
@@ -97,7 +101,10 @@ export class UsersService {
         city: true,
         state: true,
         travelStyle: true,
-        budgetRange: true,
+        budgetRange: true, // @ts-ignore
+        travelPersonality: true, // @ts-ignore
+        reputationScore: true, // @ts-ignore
+        isVerified: true,
         updatedAt: true,
       },
     });
@@ -107,5 +114,75 @@ export class UsersService {
 
   async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // FRIENDS & FOLLOW SYSTEM
+  // ══════════════════════════════════════════════════════════════════════════════
+  async followUser(currentUserId: string, targetUsername: string) {
+    const target = await this.prisma.user.findUnique({ where: { username: targetUsername } });
+    if (!target) throw new NotFoundException('User not found');
+    if (target.id === currentUserId) throw new ConflictException('You cannot follow yourself');
+
+    return this.prisma.user.update({
+      where: { id: currentUserId },
+      data: {
+        // @ts-ignore
+        following: {
+          connect: { id: target.id }
+        }
+      }
+    });
+  }
+
+  async unfollowUser(currentUserId: string, targetUsername: string) {
+    const target = await this.prisma.user.findUnique({ where: { username: targetUsername } });
+    if (!target) throw new NotFoundException('User not found');
+
+    return this.prisma.user.update({
+      where: { id: currentUserId },
+      data: {
+        // @ts-ignore
+        following: {
+          disconnect: { id: target.id }
+        }
+      }
+    });
+  }
+
+  async getPublicProfile(username: string, currentUserId?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        username: true,
+        profileImage: true,
+        bio: true,
+        city: true,
+        state: true,
+        country: true,
+        travelStyle: true, // @ts-ignore
+        travelPersonality: true, // @ts-ignore
+        reputationScore: true, // @ts-ignore
+        isVerified: true,
+        // @ts-ignore
+        _count: {
+          // @ts-ignore
+          select: { followers: true, following: true, trips: true }
+        },
+        // @ts-ignore
+        followers: currentUserId ? {
+          where: { id: currentUserId },
+          select: { id: true }
+        } : false
+      } as any
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    const isFollowing = currentUserId ? user.followers.length > 0 : false;
+    const { followers, ...rest } = user as any;
+
+    return { ...rest, isFollowing };
   }
 }

@@ -30,4 +30,8 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   budgetRange?: string;
+
+  @IsOptional()
+  @IsString()
+  travelPersonality?: string;
 }

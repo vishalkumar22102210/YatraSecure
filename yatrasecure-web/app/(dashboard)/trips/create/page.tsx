@@ -162,16 +162,16 @@ export default function CreateTripPage() {
 
   // ── Styles — NO shorthand border mixing ──
   function getBorderColor(field: string): string {
-    if (focusedField === field) return '#7C3AED';
+    if (focusedField === field) return 'rgba(249,115,22,0.5)';
     if (errors[field]) return '#EF4444';
-    return 'rgba(148,163,184,0.12)';
+    return 'rgba(255,255,255,0.08)';
   }
 
   function inp(field: string): React.CSSProperties {
     return {
       width: '100%', height: 44, padding: '0 14px',
-      borderRadius: 10, fontSize: 14, color: '#E2E8F0',
-      background: '#0F172A',
+      borderRadius: 10, fontSize: 14, color: 'white',
+      background: 'rgba(255,255,255,0.02)',
       borderWidth: 1, borderStyle: 'solid',
       borderColor: getBorderColor(field),
       outline: 'none', transition: 'border-color 0.15s',
@@ -191,9 +191,9 @@ export default function CreateTripPage() {
         }}>
           <div style={{
             width: '100%', maxWidth: 440, borderRadius: 20, padding: 32,
-            background: '#111827',
-            borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(124,58,237,0.3)',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            background: '#080b12',
+            borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.08)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
             textAlign: 'center', position: 'relative',
           }}>
             {/* Close */}
@@ -211,11 +211,11 @@ export default function CreateTripPage() {
             {/* Icon */}
             <div style={{
               width: 60, height: 60, borderRadius: 16, margin: '0 auto 16px',
-              background: 'rgba(124,58,237,0.15)',
-              borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(124,58,237,0.3)',
+              background: 'rgba(249,115,22,0.1)',
+              borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(249,115,22,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <KeyRound style={{ width: 28, height: 28, color: '#a78bfa' }} />
+              <KeyRound style={{ width: 28, height: 28, color: '#f97316' }} />
             </div>
 
             <h2 style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 6 }}>
@@ -225,17 +225,16 @@ export default function CreateTripPage() {
               Share this invite code with your friends so they can join <b style={{ color: '#a78bfa' }}>{createdTripName}</b>
             </p>
 
-            {/* Code Display */}
             <div style={{
               padding: '16px 20px', borderRadius: 14, marginBottom: 16,
-              background: 'rgba(15,23,42,0.8)',
-              borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(124,58,237,0.4)',
+              background: 'rgba(255,255,255,0.02)',
+              borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.1)',
             }}>
-              <p style={{ fontSize: 10, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+              <p style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
                 Invite Code
               </p>
               <p style={{
-                fontSize: 32, fontWeight: 900, color: '#a78bfa',
+                fontSize: 32, fontWeight: 900, color: 'white',
                 letterSpacing: '0.2em', fontFamily: 'monospace', margin: 0,
               }}>
                 {createdInviteCode}
@@ -321,7 +320,7 @@ export default function CreateTripPage() {
 
       {/* ── Form ── */}
       <form onSubmit={handleSubmit}>
-        <div className="card" style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ padding: '32px 36px', display: 'flex', flexDirection: 'column', gap: 24, background: 'rgba(255,255,255,0.02)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.04)' }}>
 
           {/* Trip Name */}
           <div>
@@ -472,11 +471,10 @@ export default function CreateTripPage() {
                   style={{
                     padding: '8px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600,
                     cursor: 'pointer', transition: 'all 0.15s',
-                    background: tripType === t.value ? 'linear-gradient(135deg,#7C3AED,#4F46E5)' : 'transparent',
+                    background: tripType === t.value ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.05)',
                     borderWidth: 1, borderStyle: 'solid',
-                    borderColor: tripType === t.value ? 'transparent' : 'rgba(148,163,184,0.12)',
-                    color: tripType === t.value ? 'white' : '#64748B',
-                    boxShadow: tripType === t.value ? '0 3px 10px rgba(124,58,237,0.3)' : 'none',
+                    borderColor: tripType === t.value ? 'transparent' : 'rgba(255,255,255,0.05)',
+                    color: tripType === t.value ? 'black' : '#94A3B8',
                   }}
                 >
                   {t.emoji} {t.label}
@@ -502,9 +500,9 @@ export default function CreateTripPage() {
                   style={{
                     flex: 1, padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
                     transition: 'all 0.15s', textAlign: 'left',
-                    background: isPublic === opt.val ? `rgba(${opt.val ? '96,165,250' : '251,191,36'},0.08)` : 'transparent',
+                    background: isPublic === opt.val ? `rgba(${opt.val ? '96,165,250' : '251,191,36'},0.1)` : 'rgba(255,255,255,0.02)',
                     borderWidth: 1, borderStyle: 'solid',
-                    borderColor: isPublic === opt.val ? (opt.val ? 'rgba(96,165,250,0.3)' : 'rgba(251,191,36,0.3)') : 'rgba(148,163,184,0.1)',
+                    borderColor: isPublic === opt.val ? (opt.val ? 'rgba(96,165,250,0.3)' : 'rgba(251,191,36,0.3)') : 'rgba(255,255,255,0.05)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -554,10 +552,10 @@ export default function CreateTripPage() {
             <textarea
               style={{
                 width: '100%', height: 96, padding: '12px 14px',
-                borderRadius: 10, fontSize: 14, color: '#E2E8F0',
-                background: '#0F172A',
+                borderRadius: 10, fontSize: 14, color: 'white',
+                background: 'rgba(255,255,255,0.02)',
                 borderWidth: 1, borderStyle: 'solid',
-                borderColor: focusedField === '_desc' ? '#7C3AED' : 'rgba(148,163,184,0.12)',
+                borderColor: focusedField === '_desc' ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.08)',
                 outline: 'none', transition: 'border-color 0.15s',
                 resize: 'none', lineHeight: 1.6,
               }}
@@ -581,25 +579,23 @@ export default function CreateTripPage() {
             onClick={() => router.back()}
             style={{
               padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-              color: '#64748B', background: 'rgba(148,163,184,0.06)',
-              borderWidth: 1, borderStyle: 'solid', borderColor: 'rgba(148,163,184,0.1)',
-              cursor: 'pointer',
+              color: '#94A3B8', background: 'rgba(255,255,255,0.05)',
+              borderWidth: 1, borderStyle: 'solid', borderColor: 'transparent',
+              cursor: 'pointer', transition: 'all 0.2s'
             }}
+            className="hover:bg-white/10"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
+            className="btn-primary"
             style={{
               flex: 1, height: 48, borderRadius: 10, fontSize: 15, fontWeight: 700,
-              color: 'white',
+              color: 'black',
               borderWidth: 0, borderStyle: 'none', borderColor: 'transparent',
               cursor: loading ? 'not-allowed' : 'pointer',
-              background: loading
-                ? '#334155'
-                : 'linear-gradient(135deg, #7C3AED, #4F46E5)',
-              boxShadow: loading ? 'none' : '0 4px 14px rgba(124,58,237,0.35)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               transition: 'all 0.15s',
             }}

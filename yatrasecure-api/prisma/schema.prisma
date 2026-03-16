@@ -24,6 +24,9 @@ model User {
   dateOfBirth  DateTime?
   travelStyle  String[] @default([])
   budgetRange  String?
+  travelPersonality String?
+  reputationScore   Int      @default(50)
+  isVerified        Boolean  @default(false)
   refreshToken     String?
   resetToken       String?
   resetTokenExpiry DateTime?
@@ -38,6 +41,12 @@ model User {
   notifications       Notification[]
   expensesPaid        Expense[]          @relation("ExpensePaidBy")
   expenseParticipants ExpenseParticipant[]
+  checklistItemsAdded     ChecklistItem[] @relation("ChecklistAddedBy")
+  checklistItemsCompleted ChecklistItem[] @relation("ChecklistCompletedBy")
+  followers           Follow[]          @relation("Following")
+  following           Follow[]          @relation("Follower")
+  photos              Photo[]
+  photoLikes          PhotoLike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,6 +90,8 @@ model Trip {
   members      TripMember[]
   joinRequests JoinRequest[]
   wallet       Wallet?
+  checklistItems ChecklistItem[]
+  photos       Photo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,4 +182,57 @@ model JoinRequest {
   updatedAt   DateTime @updatedAt
 
   @@map("join_requests")
+}
+
+model ChecklistItem {
+  id          String   @id @default(uuid())
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  addedById   String
+  addedBy     User     @relation("ChecklistAddedBy", fields: [addedById], references: [id], onDelete: Cascade)
+  name        String
+  isCompleted Boolean  @default(false)
+  completedById String?
+  completedBy   User?   @relation("ChecklistCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("checklist_items")
+}
+
+model Photo {
+  id        String   @id @default(uuid())
+  url       String
+  caption   String?
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes     PhotoLike[]
+  createdAt DateTime @default(now())
+
+  @@map("photos")
+}
+
+model PhotoLike {
+  id      String @id @default(uuid())
+  photoId String
+  photo   Photo  @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([photoId, userId])
+  @@map("photo_likes")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@map("follows")
 }

@@ -15,7 +15,7 @@ export class ExpensesController {
   ) {
     return this.expensesService.addExpense(
       tripId,
-      req.user.sub,
+      req.user.id ?? req.user.sub,
       body.amount,
       body.description,
       body.category || 'other',
@@ -30,5 +30,19 @@ export class ExpensesController {
   @Get('settlement')
   async getSettlement(@Param('tripId') tripId: string): Promise<Settlement[]> {
     return this.expensesService.calculateSettlement(tripId);
+  }
+
+  @Post('nudge')
+  async nudgeUser(
+    @Param('tripId') tripId: string,
+    @Body() body: { toId: string; amount: number },
+    @Req() req: any,
+  ) {
+    return this.expensesService.nudgeUser(
+      tripId,
+      req.user.id ?? req.user.sub,
+      body.toId,
+      body.amount,
+    );
   }
 }

@@ -96,7 +96,7 @@ export class JoinRequestsService {
 
     if (!trip) throw new NotFoundException('Trip not found');
     if (trip.adminId !== adminId) {
-      throw new ForbiddenException('Only trip admin can view requests');
+      return []; // Non-admins just get an empty list instead of a 403
     }
 
     return this.prisma.joinRequest.findMany({

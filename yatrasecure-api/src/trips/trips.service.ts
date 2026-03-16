@@ -3,16 +3,30 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AssistantService } from './assistant.service';
+import { MatchmakingService } from '../common/matchmaking/matchmaking.service';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { JoinTripDto } from './dto/join-trip.dto';
 import { UpdateRequestStatusDto } from './dto/update-request-status.dto';
 import * as crypto from 'crypto';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as path from 'path';
+
+const execAsync = promisify(exec);
 
 @Injectable()
 export class TripsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(TripsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private assistantService: AssistantService,
+    private matchmakingService: MatchmakingService,
+  ) {}
 
   private generateInviteCode(): string {
     return crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -35,7 +49,7 @@ export class TripsService {
       },
       include: {
         admin: {
-          select: { id: true, username: true, city: true, state: true, profileImage: true },
+          select: { id: true, username: true, city: true, state: true, profileImage: true, reputationScore: true, isVerified: true } as any,
         },
       },
     });
@@ -73,7 +87,7 @@ export class TripsService {
       data,
       include: {
         admin: {
-          select: { id: true, username: true, city: true, state: true, profileImage: true },
+          select: { id: true, username: true, city: true, state: true, profileImage: true, reputationScore: true, isVerified: true } as any,
         },
       },
     });
@@ -160,6 +174,24 @@ export class TripsService {
     }
 
     if (tripType)  where.tripType  = { equals: tripType, mode: 'insensitive' };
+
+    // --- MATCHMAKING LOGIC (AI ENHANCED) ---
+    if (query.matchmaking === 'true' && requestingUserId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: requestingUserId },
+        select: { travelPersonality: true }
+      });
+      
+      if (user?.travelPersonality) {
+        // Broad filter for compatible personas
+        (where as any).admin = {
+          travelPersonality: {
+            in: [user.travelPersonality, 'Culture Enthusiast', 'Soul Searcher', 'Adventure Seeker', 'Budget Explorer', 'Luxury Traveler']
+          }
+        };
+      }
+    }
+
     if (startDate) where.startDate = { gte: new Date(startDate) };
 
     const skip  = (parseInt(page) - 1) * parseInt(limit);
@@ -174,7 +206,7 @@ export class TripsService {
     const trips = await this.prisma.trip.findMany({
       where,
       include: {
-        admin:   { select: { id: true, username: true, city: true, state: true, profileImage: true } },
+        admin:   { select: { id: true, username: true, city: true, state: true, profileImage: true, reputationScore: true, isVerified: true, travelPersonality: true } as any },
         members: { select: { userId: true, role: true } },
         _count:  { select: { members: true } },
       },
@@ -183,14 +215,25 @@ export class TripsService {
       take,
     });
 
+    // --- ENHANCED MATCHMAKING SORTING ---
+    let resultTrips = trips;
+    if (query.matchmaking === 'true' && requestingUserId) {
+      const me = await this.prisma.user.findUnique({ where: { id: requestingUserId } });
+      const myPersonality = me?.travelPersonality || '';
+      
+      resultTrips = trips.map((t: any) => {
+        const matchScore = this.matchmakingService.calculateCompatibility(
+          myPersonality,
+          t.admin?.travelPersonality || '',
+        );
+        return { ...t, matchScore };
+      }).sort((a: any, b: any) => b.matchScore - a.matchScore);
+    }
+
     // ★ KEY FIX: Only strip inviteCode for public browsing, NOT for myTrips
-    let resultTrips;
-    if (isMyTrips && requestingUserId) {
-      // My Trips → keep inviteCode so frontend can show it
-      resultTrips = trips;
-    } else {
+    if (!(isMyTrips && requestingUserId)) {
       // Public browse → remove inviteCode for security
-      resultTrips = trips.map(({ inviteCode, ...t }: any) => t);
+      resultTrips = resultTrips.map(({ inviteCode, ...t }: any) => t);
     }
 
     return {
@@ -211,12 +254,12 @@ export class TripsService {
       where: { id },
       include: {
         admin: {
-          select: { id: true, username: true, city: true, state: true, profileImage: true },
+          select: { id: true, username: true, city: true, state: true, profileImage: true, reputationScore: true, isVerified: true } as any,
         },
         members: {
           include: {
             user: {
-              select: { id: true, username: true, city: true, state: true, profileImage: true },
+              select: { id: true, username: true, city: true, state: true, profileImage: true, reputationScore: true, isVerified: true } as any,
             },
           },
           orderBy: { joinedAt: 'asc' },
@@ -285,14 +328,14 @@ export class TripsService {
     if (existingMember) throw new BadRequestException('Already a member');
 
     const existingRequest = await this.prisma.joinRequest.findFirst({
-      where: { tripId, userId, status: 'pending' },
+      where: { tripId, requesterId: userId, status: 'pending' },
     });
     if (existingRequest) throw new BadRequestException('Request already pending');
 
     return this.prisma.joinRequest.create({
-      data: { tripId, userId, message: dto.message },
+      data: { tripId, requesterId: userId, message: dto.message },
       include: {
-        user: {
+        requester: {
           select: { id: true, username: true, profileImage: true },
         },
       },
@@ -308,7 +351,7 @@ export class TripsService {
     return this.prisma.joinRequest.findMany({
       where: { tripId },
       include: {
-        user: {
+        requester: {
           select: { id: true, username: true, profileImage: true, city: true, state: true },
         },
       },
@@ -340,11 +383,11 @@ export class TripsService {
 
     if (dto.status === 'accepted') {
       const existingMember = await this.prisma.tripMember.findUnique({
-        where: { tripId_userId: { tripId, userId: request.userId } },
+        where: { tripId_userId: { tripId, userId: request.requesterId } },
       });
       if (!existingMember) {
         await this.prisma.tripMember.create({
-          data: { tripId, userId: request.userId, role: 'member' },
+          data: { tripId, userId: request.requesterId, role: 'member' },
         });
       }
     }
@@ -406,5 +449,194 @@ export class TripsService {
     });
 
     return { message: 'Left trip successfully' };
+  }
+
+  // ================= UTILS FOR ITINERARY =================
+  async findById(id: string) {
+    return this.prisma.trip.findUnique({
+      where: { id },
+    });
+  }
+
+  async updateItinerary(id: string, itinerary: string) {
+    return this.prisma.trip.update({
+      where: { id },
+      data: { itinerary },
+    });
+  }
+
+  // ================= CREW AI BOOKING AGENTS =================
+  async runBookingAgents(trip: any, customPrompt?: string, answers?: any) {
+    try {
+      // 1. Prepare JSON input for Python
+      const inputData = {
+        destination: trip.toCity,
+        dates: `${trip.startDate.toISOString().split('T')[0]} to ${trip.endDate.toISOString().split('T')[0]}`,
+        budget: trip.budget.toString(),
+        customPrompt: customPrompt || "",
+        answers: answers || {},
+        travelers: trip.members?.length || 1
+      };
+
+      // 2. Define the path to the python script and venv python
+      const scriptPath = path.join(process.cwd(), 'booking_agents.py');
+      const pythonExec = path.join(process.cwd(), 'venv', 'Scripts', 'python.exe');
+      
+      const payload = JSON.stringify(inputData).replace(/"/g, '\\"'); // Escaping for shell
+
+      // 3. Execute python subprocess (increased timeout for multi-agent)
+      const { stdout, stderr } = await execAsync(`"${pythonExec}" "${scriptPath}" "${payload}"`, {
+        timeout: 120000, // 2 minutes for multi-agent processing
+      });
+
+      // 4. Parse output — take last line (skip any warnings)
+      const resultString = stdout.trim().split('\n').pop();
+      if (!resultString) {
+          throw new Error("No output from Booking Agents script");
+      }
+      
+      let result;
+      try {
+        result = JSON.parse(resultString);
+      } catch(parseErr) {
+         console.error("RAW STDOUT:", stdout);
+         throw new Error("Failed to parse output from Booking Agents script");
+      }
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Return full structured data if available, otherwise just package
+      if (result.structured) {
+        return result;
+      }
+      return { package: result.package };
+      
+    } catch (error: any) {
+      console.error('CrewAI Execution Error:', error);
+      throw new BadRequestException(error.message || 'Failed to run Booking Agents');
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // SHARED PACKING CHECKLIST (PHASE 13)
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  async getChecklist(tripId: string) {
+    return this.prisma.checklistItem.findMany({
+      where: { tripId },
+      include: {
+        addedBy: { select: { id: true, username: true, profileImage: true } },
+        completedBy: { select: { id: true, username: true, profileImage: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async addChecklistItem(tripId: string, userId: string, name: string) {
+    const member = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId, userId } }
+    });
+    if (!member) {
+      const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+      if (trip?.adminId !== userId) throw new ForbiddenException("Not a member of this trip");
+    }
+
+    return this.prisma.checklistItem.create({
+      data: { tripId, addedById: userId, name },
+      select: {
+        id: true,
+        name: true,
+        isCompleted: true,
+        addedBy: { select: { id: true, username: true, profileImage: true } },
+        completedBy: { select: { id: true, username: true, profileImage: true } },
+        createdAt: true,
+      },
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // TRIP PHOTOS (PHASE 14)
+  // ══════════════════════════════════════════════════════════════════════════════
+  async addTripPhoto(tripId: string, userId: string, url: string, caption?: string) {
+    return this.prisma.photo.create({
+      data: { tripId, userId, url, caption }
+    });
+  }
+
+  async getTripPhotos(tripId: string, userId?: string) {
+    const photos = await this.prisma.photo.findMany({
+      where: { tripId },
+      include: {
+        user: { select: { id: true, username: true, profileImage: true } },
+        likes: { select: { userId: true } }
+      } as any,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return photos.map((p: any) => ({
+      ...p,
+      likeCount: p.likes.length,
+      isLiked: userId ? p.likes.some((l: any) => l.userId === userId) : false,
+      likes: undefined // remove full likes array to save bandwidth
+    }));
+  }
+
+  async togglePhotoLike(photoId: string, userId: string) {
+    const existing = await (this.prisma as any).photoLike.findUnique({
+      where: { photoId_userId: { photoId, userId } }
+    });
+
+    if (existing) {
+      await (this.prisma as any).photoLike.delete({
+        where: { id: existing.id }
+      });
+      return { liked: false };
+    } else {
+      await (this.prisma as any).photoLike.create({
+        data: { photoId, userId }
+      });
+      return { liked: true };
+    }
+  }
+
+  async toggleChecklistItem(tripId: string, itemId: string, userId: string, isCompleted: boolean) {
+    const member = await this.prisma.tripMember.findUnique({
+      where: { tripId_userId: { tripId, userId } }
+    });
+    if (!member) {
+      const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+      if (trip?.adminId !== userId) throw new ForbiddenException("Not a member of this trip");
+    }
+
+    const item = await this.prisma.checklistItem.findUnique({ where: { id: itemId } });
+    if (!item || item.tripId !== tripId) throw new NotFoundException('Item not found');
+
+    return this.prisma.checklistItem.update({
+      where: { id: itemId },
+      data: {
+        isCompleted,
+        completedById: isCompleted ? userId : null
+      },
+      include: {
+        addedBy: { select: { id: true, username: true, profileImage: true } },
+        completedBy: { select: { id: true, username: true, profileImage: true } }
+      }
+    });
+  }
+
+  async removeChecklistItem(tripId: string, itemId: string, userId: string) {
+    const item = await this.prisma.checklistItem.findUnique({ where: { id: itemId } });
+    if (!item || item.tripId !== tripId) throw new NotFoundException('Item not found');
+
+    // Only creator or admin can delete
+    if (item.addedById !== userId) {
+      const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+      if (trip?.adminId !== userId) throw new ForbiddenException("Not authorized to remove this item");
+    }
+
+    await this.prisma.checklistItem.delete({ where: { id: itemId } });
+    return { success: true };
   }
 }

@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface Settlement {
   from: string;
@@ -15,7 +16,10 @@ export interface Settlement {
 
 @Injectable()
 export class ExpensesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async addExpense(
     tripId: string,
@@ -177,5 +181,24 @@ export class ExpensesService {
     }
 
     return settlements;
+  }
+
+  async nudgeUser(tripId: string, fromId: string, toId: string, amount: number) {
+    const fromUser = await this.prisma.user.findUnique({ where: { id: fromId } });
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+
+    if (!fromUser || !trip) throw new NotFoundException('User or Trip not found');
+
+    const title = `💸 Payment Nudge: ${trip.name}`;
+    const message = `${fromUser.username} sent you a gentle nudge to settle your balance of ₹${amount.toLocaleString()}.`;
+    const link = `/trips/${tripId}/wallet`;
+
+    return this.notificationsService.createNotification(
+      toId,
+      'settlement_nudge',
+      title,
+      message,
+      link,
+    );
   }
 }

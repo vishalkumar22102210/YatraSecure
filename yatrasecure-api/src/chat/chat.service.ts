@@ -12,7 +12,7 @@ export class ChatService {
     private readonly prisma: PrismaService,
   ) {}
 
-  // ✅ Check if user is member of trip (UPDATED)
+  // Check if user is member of trip
   async ensureIsMember(tripId: string, userId: string) {
     const member = await this.prisma.tripMember.findUnique({
       where: {
@@ -28,9 +28,7 @@ export class ChatService {
     }
   }
 
-  // ============================
-  // Send Message
-  // ============================
+  // Send Message (with membership check)
   async sendMessage(
     tripId: string,
     userId: string,
@@ -50,9 +48,25 @@ export class ChatService {
     return message.save();
   }
 
-  // ============================
+  // Save system/AI message (NO membership check)
+  async saveSystemMessage(
+    tripId: string,
+    userId: string,
+    username: string,
+    content: string,
+  ) {
+    const message = new this.messageModel({
+      tripId,
+      userId,
+      username,
+      content,
+      type: 'ai',
+    });
+
+    return message.save();
+  }
+
   // Get Messages of a Trip
-  // ============================
   async getMessages(tripId: string) {
     return this.messageModel
       .find({ tripId })

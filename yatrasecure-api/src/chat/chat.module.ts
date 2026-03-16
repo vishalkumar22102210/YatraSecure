@@ -6,6 +6,7 @@ import { Message, MessageSchema } from './schemas/message.schema';
 import { TripsModule } from '../trips/trips.module';
 import { ChatGateway } from './chat.gateway';
 import { JwtModule } from '@nestjs/jwt';
+import { ChatAIAssistantService } from './chat-ai-assistant.service';
 
 @Module({
   imports: [
@@ -14,6 +15,6 @@ import { JwtModule } from '@nestjs/jwt';
     MongooseModule.forFeature([{ name: Message.name, schema: MessageSchema }]),
   ],
   controllers: [ChatController],
-  providers: [ChatService, ChatGateway],
+  providers: [ChatService, ChatGateway, ChatAIAssistantService],
 })
 export class ChatModule {}

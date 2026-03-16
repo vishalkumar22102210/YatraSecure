@@ -22,7 +22,8 @@ export default function NotificationsPage() {
 
   async function fetchNotifs() {
     try {
-      const data = await fetchWithAuth("/notifications");
+      const res = await fetchWithAuth("/notifications");
+      const data = await res.json();
       setNotifs(Array.isArray(data) ? data : data?.notifications || []);
     } catch { setNotifs([]); }
     finally { setLoading(false); }

@@ -2,13 +2,36 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, 
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
+  AreaChart, Area
+} from 'recharts';
 import {
   ArrowLeft, Plus, Wallet, TrendingDown, Users, Receipt,
-  Loader2, AlertCircle, X, ChevronDown
+  Loader2, AlertCircle, X, ChevronDown, Bell, CheckCircle2
 } from "lucide-react";
 import { API_BASE_URL, getAccessToken } from "@/app/lib/api";
 
 const CATEGORIES = ["Food", "Transport", "Accommodation", "Shopping", "Activities", "Medical", "Other"];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const card: React.CSSProperties = {
+  borderRadius: 16, background: 'rgba(255,255,255,0.02)',
+  border: '1px solid rgba(255,255,255,0.04)', padding: 28,
+};
+const badge = (color: string, bg: string): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '6px 12px', borderRadius: 8, fontSize: 11,
+  fontWeight: 600, color, background: bg, border: `1px solid ${bg.replace(',0.1)', ',0.2)')}`
+});
+const btn = (bg: string, color = 'white'): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '10px 18px', borderRadius: 10, fontSize: 13,
+  fontWeight: 600, color, background: bg,
+  border: 'none', cursor: 'pointer', textDecoration: 'none',
+  transition: 'all 0.15s',
+});
 
 function timeAgo(d: string) {
   const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
@@ -37,6 +60,11 @@ export default function WalletPage() {
   const [showForm, setShowForm]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // AI Budget Predictor state
+  const [predicting, setPredicting] = useState(false);
+  const [prediction, setPrediction] = useState<any>(null);
+  const [predictError, setPredictError] = useState('');
 
   const [form, setForm] = useState({
     description: "", amount: "", category: "Food",
@@ -108,10 +136,91 @@ export default function WalletPage() {
     finally { setSubmitting(false); }
   }
 
+  async function handlePredictBudget() {
+    setPredicting(true);
+    setPredictError('');
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`/api/trips/${tripId}/budget-predict`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Prediction failed");
+      setPrediction(data);
+      toast.success("AI Budget Prediction complete!");
+    } catch (e: any) {
+      setPredictError(e.message);
+      toast.error(e.message);
+    } finally {
+      setPredicting(false);
+    }
+  }
+
   const totalSpent   = expenses.reduce((a, e) => a + (e.amount || 0), 0);
   const totalBudget  = wallet?.totalBudget || trip?.budget || 0;
   const remaining    = totalBudget - totalSpent;
   const spentPct     = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+
+  function calculateSettlements() {
+    if (!members.length || !expenses.length) return [];
+    const balances: Record<string, number> = {};
+    members.forEach(m => balances[m.userId || m.user?.id] = 0);
+
+    expenses.forEach(exp => {
+      const p = exp.paidBy;
+      const amt = exp.amount;
+      const split = amt / members.length;
+      if (balances[p] !== undefined) balances[p] += amt;
+      members.forEach(m => {
+        const uid = m.userId || m.user?.id;
+        if (balances[uid] !== undefined) balances[uid] -= split;
+      });
+    });
+
+    const debtors = Object.keys(balances).filter(k => balances[k] < -0.01).map(k => ({ id: k, amount: -balances[k] })).sort((a,b) => b.amount - a.amount);
+    const creditors = Object.keys(balances).filter(k => balances[k] > 0.01).map(k => ({ id: k, amount: balances[k] })).sort((a,b) => b.amount - a.amount);
+
+    const results = [];
+    let i = 0, j = 0;
+    while (i < debtors.length && j < creditors.length) {
+      const d = debtors[i], c = creditors[j];
+      const amt = Math.min(d.amount, c.amount);
+      results.push({ from: d.id, to: c.id, amount: amt });
+      d.amount -= amt; c.amount -= amt;
+      if (d.amount < 0.01) i++;
+      if (c.amount < 0.01) j++;
+    }
+    return results;
+  }
+
+  const settlements = calculateSettlements();
+
+  // ── Chart Data Processing ──
+  const categoryData = CATEGORIES.map(cat => {
+    const total = expenses
+      .filter(e => e.category === cat)
+      .reduce((acc, e) => acc + (e.amount || 0), 0);
+    return { name: cat, value: total };
+  }).filter(c => c.value > 0);
+
+  const memberContributionData = members.map(m => {
+    const uid = m.userId || m.user?.id;
+    const paid = expenses
+      .filter(e => e.paidBy === uid)
+      .reduce((acc, e) => acc + (e.amount || 0), 0);
+    return { name: m.user?.username || m.username, amount: paid };
+  });
+
+  const dailySpendingData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const total = expenses
+      .filter(e => new Date(e.createdAt).toDateString() === d.toDateString())
+      .reduce((acc, e) => acc + (e.amount || 0), 0);
+    return { date: label, amount: total };
+  });
 
   if (loading) return (
     <div className="anim-in">
@@ -160,22 +269,204 @@ export default function WalletPage() {
         ))}
       </div>
 
-      {/* Budget progress bar */}
-      {totalBudget > 0 && (
-        <div className="card" style={{ padding: "18px 20px", marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "white" }}>Budget Usage</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: spentPct > 80 ? "#ef4444" : "#f97316" }}>{spentPct.toFixed(1)}%</span>
-          </div>
-          <div style={{ height: 8, borderRadius: 999, background: "#1e293b", overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 999, width: `${spentPct}%`, transition: "width 0.5s ease", background: spentPct > 80 ? "linear-gradient(90deg,#ef4444,#f97316)" : "linear-gradient(90deg,#f97316,#fbbf24)" }} />
-          </div>
-          {remaining < 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
-              <AlertCircle style={{ width: 13, height: 13, color: "#ef4444" }} />
-              <p style={{ fontSize: 12, color: "#ef4444", margin: 0 }}>Over budget by ₹{Math.abs(remaining).toLocaleString()}</p>
+      {/* ── CHARTS SECTION ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: 20, marginBottom: 24 }}>
+        
+        {/* Category Breakdown Pie */}
+        <div className="card" style={{ padding: 24, height: 350, display: "flex", flexDirection: "column" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "white", marginBottom: 20 }}>Categorical Spending</h3>
+          {categoryData.length > 0 ? (
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CATEGORY_COLOR[entry.name.toLowerCase()] || "#94a3b8"} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, fontSize: 12 }}
+                    itemStyle={{ color: 'white' }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#475569", fontSize: 13 }}>
+              Add expenses to see breakdown
             </div>
           )}
+        </div>
+
+        {/* Member Spending Bar */}
+        <div className="card" style={{ padding: 24, height: 350, display: "flex", flexDirection: "column" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "white", marginBottom: 20 }}>Member Contributions</h3>
+          {memberContributionData.length > 0 ? (
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={memberContributionData}>
+                  <XAxis dataKey="name" fontSize={10} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis fontSize={10} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, fontSize: 12 }}
+                  />
+                  <Bar dataKey="amount" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#475569", fontSize: 13 }}>
+              No member data available
+            </div>
+          )}
+        </div>
+
+        {/* Recent Spending Area Chart */}
+        <div className="card" style={{ padding: 24, height: 300, gridColumn: "1 / -1" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "white", marginBottom: 20 }}>Spending Trend (Last 7 Days)</h3>
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailySpendingData}>
+                <defs>
+                  <linearGradient id="colorAmt" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="date" fontSize={10} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis fontSize={10} tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, fontSize: 12 }}
+                />
+                <Area type="monotone" dataKey="amount" stroke="#f97316" fillOpacity={1} fill="url(#colorAmt)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* ── AI BUDGET PREDICTOR ── */}
+      {trip?.adminId === currentUser?.id && (
+        <div className="card" style={{ padding: 22, marginBottom: 24, background: "rgba(124,58,237,0.03)", borderColor: "rgba(124,58,237,0.15)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: prediction ? 16 : 0 }}>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#a78bfa", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 8 }}>
+                 ✨ AI Smart Budget Predictor
+              </h3>
+              <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>
+                Not sure if ₹{totalBudget.toLocaleString()} is enough? Let AI estimate the minimum required budget for {members.length} members based on the route and duration.
+              </p>
+            </div>
+            {!prediction && !predicting && (
+              <button onClick={handlePredictBudget} style={{ background: "rgba(124,58,237,0.15)", color: "#a78bfa", border: "1px solid rgba(124,58,237,0.3)", padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer" }} className="hover:bg-purple-500/20 transition-colors">
+                Predict Budget
+              </button>
+            )}
+          </div>
+
+          {predicting && (
+            <div style={{ padding: 16, textAlign: "center" }}>
+              <Loader2 style={{ width: 24, height: 24, margin: "0 auto 10px", animation: "spin 1s linear infinite", color: "#a78bfa" }} />
+              <p style={{ fontSize: 13, color: "#cbd5e1", margin: 0 }}>AI is calculating real-world costs...</p>
+            </div>
+          )}
+
+          {predictError && (
+             <div style={{ padding: 12, background: "rgba(239,68,68,0.1)", color: "#f87171", borderRadius: 10, fontSize: 13, marginTop: 12, border: "1px solid rgba(239,68,68,0.2)" }}>
+               {predictError}
+             </div>
+          )}
+
+          {prediction && !predicting && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                 <p style={{ fontSize: 16, color: "white", margin: 0, fontWeight: 700 }}>
+                   Estimated Cost: <span style={{ color: prediction.totalEstimated > totalBudget ? "#ef4444" : "#4ade80" }}>₹{prediction.totalEstimated?.toLocaleString() || 0}</span>
+                 </p>
+                 <button onClick={() => setPrediction(null)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#94a3b8", padding: "6px 12px", borderRadius: 8, fontSize: 11, cursor: "pointer" }}>Clear</button>
+              </div>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 16 }}>
+                 {prediction.breakdown?.map((b: any, i: number) => (
+                   <div key={i} style={{ background: "rgba(15,23,42,0.6)", padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.05)" }}>
+                     <p style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", fontWeight: 700, margin: "0 0 4px" }}>{b.category}</p>
+                     <p style={{ fontSize: 15, color: "white", fontWeight: 800, margin: "0 0 6px" }}>₹{b.amount?.toLocaleString()}</p>
+                     <p style={{ fontSize: 11, color: "#64748b", margin: 0, lineHeight: 1.4 }}>{b.reason}</p>
+                   </div>
+                 ))}
+              </div>
+
+              {prediction.advice && (
+                <div style={{ padding: 14, background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: 10 }}>
+                  <p style={{ fontSize: 11, color: "#4ade80", textTransform: "uppercase", fontWeight: 700, margin: "0 0 4px" }}>💡 AI Advice</p>
+                  <p style={{ fontSize: 13, color: "#cbd5e1", margin: 0, lineHeight: 1.5 }}>{prediction.advice}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SETTLEMENT REMINDERS ── */}
+      {settlements.length > 0 && (
+        <div style={{ ...card, padding: 24, marginBottom: 24, border: '1px solid rgba(59,130,246,0.3)', background: 'linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9))', gridColumn: '1 / -1' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users style={{ width: 20, height: 20, color: '#60A5FA' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: 'white', margin: 0 }}>Settlement Roadmap</h3>
+                <p style={{ fontSize: 12, color: '#94A3B8', margin: 0 }}>Optimized paths to balance the trip budget</p>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+            {settlements.map((s: any, idx) => {
+              const fromUser = members.find((m: any) => (m.userId || m.user?.id) === s.from);
+              const toUser = members.find((m: any) => (m.userId || m.user?.id) === s.to);
+              const isCurrentUserDebtor = (fromUser?.userId || fromUser?.user?.id) === currentUser?.id;
+              
+              return (
+                <div key={idx} style={{ padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: -8 }}>
+                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#EF4444', border: '2px solid #0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', zIndex: 2 }}>
+                        {fromUser?.user?.username?.[0].toUpperCase() || '?'}
+                     </div>
+                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#22C55E', border: '2px solid #0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', marginLeft: -12, zIndex: 1 }}>
+                        {toUser?.user?.username?.[0].toUpperCase() || '?'}
+                     </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, color: 'white', fontWeight: 600, margin: 0 }}>
+                      <span style={{ color: '#F87171' }}>@{fromUser?.user?.username || fromUser?.username}</span>
+                      <span style={{ margin: '0 6px', color: '#64748b' }}>→</span>
+                      <span style={{ color: '#4ADE80' }}>@{toUser?.user?.username || toUser?.username}</span>
+                    </p>
+                    <p style={{ fontSize: 18, fontWeight: 900, color: 'white', margin: '4px 0 0' }}>₹{Math.round(s.amount).toLocaleString()}</p>
+                  </div>
+                  {isCurrentUserDebtor ? (
+                    <button onClick={() => toast.success("Marked as paid!")} style={{ background: '#22C55E', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }} className="hover:bg-green-600 transition-all">
+                      Settle Up
+                    </button>
+                  ) : (
+                    <button onClick={() => toast.success(`Reminder sent to @${fromUser?.user?.username || fromUser?.username}`)} style={{ ...btn('rgba(59,130,246,0.1)', '#60a5fa'), padding: '8px 14px', fontSize: 12 }}>
+                      <Bell style={{ width: 14, height: 14 }} /> Remind
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
