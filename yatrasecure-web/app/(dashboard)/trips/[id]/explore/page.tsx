@@ -71,8 +71,8 @@ export default function ExploreGemsPage() {
 
   if (fetchingTrip) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#020617" }}>
-        <Loader2 style={{ width: 32, height: 32, color: "#f97316", animation: "spin 1s linear infinite" }} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg)" }}>
+        <Loader2 style={{ width: 32, height: 32, color: "var(--accent)", animation: "spin 1s linear infinite" }} />
       </div>
     );
   }
@@ -85,8 +85,8 @@ export default function ExploreGemsPage() {
       </button>
 
       <div style={{ marginBottom: 32, display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #8b5cf6, #d946ef)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Compass style={{ width: 24, height: 24, color: "white" }} />
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Compass style={{ width: 24, height: 24, color: "var(--accent)" }} />
         </div>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 4px", color: "white" }}>AI Exploration Engine</h1>

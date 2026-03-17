@@ -66,39 +66,65 @@ export default function MarketplacePage() {
     <div style={{ padding: '40px 20px', maxWidth: 1400, margin: '0 auto' }}>
       
       {/* ══ HERO SECTION ══════════════════════════════════════════════════════ */}
+      <style>{`@keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
       <div style={{ 
         position: 'relative', overflow: 'hidden', padding: '80px 40px', 
         borderRadius: 40, background: 'linear-gradient(135deg, #0f172a, #1e293b)',
         border: '1px solid rgba(255,255,255,0.05)', marginBottom: 48,
         display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center'
       }}>
+        {/* Scrolling Destination Image Marquee Strip */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 40, zIndex: 0, pointerEvents: 'none' }}>
+          <div style={{ display: 'flex', width: 'max-content', animation: 'marqueeScroll 28s linear infinite', height: '100%' }}>
+            {[
+              'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=60',
+              'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=60',
+              'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&q=60',
+              'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&q=60',
+              'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=60',
+              'https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=600&q=60',
+              'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=60',
+              'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=60',
+              'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&q=60',
+              'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&q=60',
+              'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=60',
+              'https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=600&q=60',
+            ].map((src, idx) => (
+              <div key={idx} style={{ flexShrink: 0, width: 320, height: '100%', overflow: 'hidden', opacity: 0.06 }}>
+                <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div style={{ 
           position: 'absolute', top: '-100px', right: '-100px', width: 400, height: 400,
-          background: 'radial-gradient(circle, rgba(245,158,11,0.1) 0%, transparent 70%)', filter: 'blur(60px)'
+          background: 'radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 1
         }} />
         <div style={{ 
           position: 'absolute', bottom: '-100px', left: '-100px', width: 400, height: 400,
-          background: 'radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%)', filter: 'blur(60px)'
+          background: 'radial-gradient(circle, rgba(56,189,248,0.05) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 1
         }} />
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 24, border: '1px solid rgba(245,158,11,0.2)' }}>
+        <div style={{ position: 'relative', zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, color: 'var(--accent)', marginBottom: 24, border: '1px solid rgba(56,189,248,0.2)' }}>
           <ShoppingBag style={{ width: 14, height: 14 }} /> VERIFIED EXPERIENCES
         </div>
-        <h1 style={{ fontSize: 72, fontWeight: 950, color: 'white', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 20 }}>
-          Autonomous <span style={{ color: '#f59e0b' }}>Marketplace</span>
+        <h1 style={{ position: 'relative', zIndex: 2, fontSize: 72, fontWeight: 700, color: 'white', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 20, fontFamily: "'Space Grotesk', sans-serif" }}>
+          Autonomous <span style={{ color: 'var(--accent)' }}>Marketplace</span>
         </h1>
-        <p style={{ fontSize: 20, color: '#94a3b8', maxWidth: 640, marginBottom: 40 }}>
+        <p style={{ position: 'relative', zIndex: 2, fontSize: 20, color: '#94a3b8', maxWidth: 640, marginBottom: 40 }}>
           Verified local secrets, group-curated adventures, and exclusive traveler benefits—all in one place.
         </p>
 
-        <div style={{ width: '100%', maxWidth: 700, position: 'relative' }}>
+        <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 700 }}>
           <Search style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', color: '#64748b', width: 20, height: 20 }} />
           <input 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search by city, activity, or provider..."
-            style={{ width: '100%', padding: '20px 20px 20px 60px', borderRadius: 24, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: 16, outline: 'none', transition: 'all 0.3s' }}
-            onFocus={e => e.target.style.borderColor = '#f59e0b'}
+            className="input-field"
+            style={{ padding: '20px 20px 20px 60px', borderRadius: 24, fontSize: 16 }}
+            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
           />
         </div>
@@ -112,8 +138,8 @@ export default function MarketplacePage() {
             onClick={() => setActiveCategory(cat)}
             style={{ 
               padding: '12px 24px', borderRadius: 16, fontSize: 14, fontWeight: 700,
-              background: activeCategory === cat ? '#f59e0b' : 'rgba(255,255,255,0.03)',
-              color: activeCategory === cat ? 'white' : '#94a3b8',
+              background: activeCategory === cat ? 'var(--accent)' : 'rgba(255,255,255,0.03)',
+              color: activeCategory === cat ? 'var(--bg)' : '#94a3b8',
               border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', transition: 'all 0.2s'
             }}
             className="hover:scale-105 active:scale-95"
@@ -126,7 +152,7 @@ export default function MarketplacePage() {
       {/* ══ OFFERINGS GRID ═══════════════════════════════════════════════════ */}
       {loading ? (
         <div style={{ minHeight: '40vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <Loader2 style={{ width: 40, height: 40, animation: 'spin 2s linear infinite', color: '#f59e0b' }} />
+          <Loader2 style={{ width: 40, height: 40, animation: 'spin 2s linear infinite', color: 'var(--accent)' }} />
           <p style={{ color: '#64748b', fontWeight: 600 }}>Curating premium offerings for you...</p>
         </div>
       ) : (
@@ -162,7 +188,7 @@ export default function MarketplacePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#cbd5e1' }}>
-                     <MapPin style={{ width: 16, height: 16, color: '#f59e0b' }} /> {off.location}
+                     <MapPin style={{ width: 16, height: 16, color: 'var(--accent)' }} /> {off.location}
                    </div>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#94a3b8' }}>
                      <Compass style={{ width: 16, height: 16 }} /> {off.vibe}
@@ -179,10 +205,9 @@ export default function MarketplacePage() {
                       {off.currency} {off.price.toLocaleString()}
                     </div>
                   </div>
-                  <button style={{ 
-                    padding: '14px 28px', borderRadius: 16, background: '#f59e0b', color: 'white', 
-                    fontWeight: 800, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
-                  }} className="hover:scale-105 transition-transform">
+                  <button className="btn-primary hover:scale-105 transition-transform" style={{ 
+                    padding: '14px 28px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 8
+                  }}>
                     Explore Details <ArrowRight style={{ width: 16, height: 16 }} />
                   </button>
                 </div>
@@ -194,8 +219,8 @@ export default function MarketplacePage() {
 
       {/* ══ CTA SECTION ═══════════════════════════════════════════════════════ */}
       <div style={{ 
-        marginTop: 80, padding: 60, borderRadius: 48, background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(59,130,246,0.1))',
-        border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center'
+        marginTop: 80, padding: 60, borderRadius: 48, background: 'linear-gradient(135deg, rgba(56,189,248,0.06), rgba(56,189,248,0.02))',
+        border: '1px solid rgba(56,189,248,0.12)', textAlign: 'center'
       }}>
         <h2 style={{ fontSize: 40, fontWeight: 950, color: 'white', marginBottom: 20 }}>Are you a local expert?</h2>
         <p style={{ color: '#94a3b8', fontSize: 18, maxWidth: 600, margin: '0 auto 40px' }}>

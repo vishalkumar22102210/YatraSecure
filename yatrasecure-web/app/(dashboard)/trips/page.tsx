@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { API_BASE_URL, getAccessToken } from "@/app/lib/api";
 import FollowButton from "@/components/FollowButton";
+import { TravelThemeContext, CATEGORY_IMAGE_SETS, normalizeCategoryKey } from "@/app/TravelThemeProvider";
+import { CategoryCharacter } from "@/components/CategoryCharacter";
 
 const TRIP_TYPES = ["All", "Group", "Solo", "Family", "Adventure", "Pilgrimage", "Business"];
 const SORT_OPTIONS = [
@@ -25,6 +27,27 @@ const SORT_OPTIONS = [
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
+
+type CategoryKey = "mountains" | "beach" | "forest" | "desert" | "city" | "adventure";
+
+function resolveCategoryKey(trip: any): CategoryKey {
+  const raw = (trip.category || trip.tripType || "").toString().toLowerCase();
+  if (raw.includes("mountain") || raw.includes("himala")) return "mountains";
+  if (raw.includes("beach") || raw.includes("ocean") || raw.includes("sea") || raw.includes("island")) return "beach";
+  if (raw.includes("forest") || raw.includes("nature")) return "forest";
+  if (raw.includes("desert") || raw.includes("dune")) return "desert";
+  if (raw.includes("city") || raw.includes("urban")) return "city";
+  return "adventure";
+}
+
+const CATEGORY_COLORS: Record<CategoryKey, { accent: string; tint: string; border: string }> = {
+  mountains: { accent: "#4A6FA5", tint: "rgba(74,111,165,0.16)", border: "rgba(148,180,214,0.9)" },
+  beach:     { accent: "#00B4D8", tint: "rgba(0,180,216,0.16)",  border: "rgba(0,180,216,0.9)" },
+  forest:    { accent: "#2D6A4F", tint: "rgba(45,106,79,0.16)",  border: "rgba(82,183,136,0.9)" },
+  desert:    { accent: "#C1440E", tint: "rgba(193,68,14,0.16)",  border: "rgba(233,196,106,0.9)" },
+  city:      { accent: "#7B2FBE", tint: "rgba(123,47,190,0.16)", border: "rgba(192,192,192,0.9)" },
+  adventure: { accent: "#FF6B35", tint: "rgba(255,107,53,0.16)", border: "rgba(255,107,53,0.9)" },
+};
 
 /* ─── Premium Trip Card ──────────────────────────────────────────────────────── */
 function TripCard({ trip, currentUserId }: { trip: any; currentUserId?: string }) {
@@ -45,6 +68,8 @@ function TripCard({ trip, currentUserId }: { trip: any; currentUserId?: string }
     : { label: "Completed",        color: "#64748b", bg: "rgba(100,116,139,0.1)" };
 
   const [copied, setCopied] = useState(false);
+  const categoryKey = resolveCategoryKey(trip);
+  const categoryColors = CATEGORY_COLORS[categoryKey];
   
   // Calculate a fake but plausible match score based on types
   const matchScore = trip._count?.members ? Math.floor(Math.random() * 15) + 85 : 92; 
@@ -59,22 +84,49 @@ function TripCard({ trip, currentUserId }: { trip: any; currentUserId?: string }
     }
   }
 
+  function activatePalette() {
+    if (typeof window !== "undefined" && typeof window.setCategoryPalette === "function") {
+      window.setCategoryPalette(categoryKey);
+    }
+  }
+
+  function resetPalette() {
+    if (typeof window !== "undefined" && typeof window.setCategoryPalette === "function") {
+      let stored = "default";
+      try { stored = localStorage.getItem("active_palette") || "default"; } catch (e) {}
+      window.setCategoryPalette(stored);
+    }
+  }
+
   return (
     <div
-      onClick={() => router.push(`/trips/${trip.id}`)}
+      onMouseEnter={activatePalette}
+      onMouseLeave={resetPalette}
+      onClick={() => {
+        if (typeof window !== "undefined" && typeof window.setCategoryPalette === "function") {
+          window.setCategoryPalette(categoryKey, true);
+        }
+        router.push(`/trips/${trip.id}`);
+      }}
       style={{
-        background: 'rgba(15,23,42,0.6)',
+        background: categoryColors.tint,
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid rgba(148,163,184,0.35)',
         borderRadius: 24,
         overflow: 'hidden',
         cursor: 'pointer',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative'
+        position: 'relative',
+        boxShadow: '0 18px 40px rgba(15,23,42,0.8)',
       }}
-      className="hover:-translate-y-2 hover:border-orange-500/30 group"
+      className="group card-lift"
     >
-      <div style={{ height: 4, background: isAdmin ? "linear-gradient(90deg,#f97316,#fbbf24)" : "linear-gradient(90deg,#7c3aed,#3b82f6)" }} />
+      <div
+        style={{
+          height: 4,
+          background: `linear-gradient(90deg, ${categoryColors.accent} 0%, ${categoryColors.border} 100%)`,
+        }}
+      />
       
       <div style={{ padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -82,7 +134,7 @@ function TripCard({ trip, currentUserId }: { trip: any; currentUserId?: string }
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                <span style={{ 
                  fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
-                 color: '#f97316', background: 'rgba(249,115,22,0.1)', padding: '2px 8px', borderRadius: 6
+                 color: categoryColors.accent, background: `${categoryColors.accent}1a`, padding: '2px 8px', borderRadius: 999
                }}>{trip.tripType}</span>
                {trip.isPublic && <ShieldCheck style={{ width: 12, height: 12, color: '#22c55e' }} />}
                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(34,197,94,0.1)', color: '#22c55e', padding: '2px 8px', borderRadius: 8 }}>
@@ -98,7 +150,7 @@ function TripCard({ trip, currentUserId }: { trip: any; currentUserId?: string }
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
-          <MapPin style={{ width: 14, height: 14, color: '#f97316' }} />
+          <MapPin style={{ width: 14, height: 14, color: categoryColors.accent }} />
           {trip.fromCity} 
           <ArrowRight style={{ width: 12, height: 12, opacity: 0.5 }} /> 
           {trip.toCity}
@@ -171,6 +223,7 @@ export default function TripsPage() {
   const [minBudget,  setMinBudget]  = useState("");
   const [maxBudget,  setMaxBudget]  = useState("");
   const [cityGuide,  setCityGuide]  = useState("");
+  const [scoutPlaceholder, setScoutPlaceholder] = useState("Enter a city (e.g. Manali, Paris, Tokyo)...");
 
   const btn = (bg: string, col = 'white') => ({
     display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px',
@@ -182,6 +235,16 @@ export default function TripsPage() {
   useEffect(() => {
     const s = localStorage.getItem("user");
     if (s) setCurrentUser(JSON.parse(s));
+  }, []);
+
+  useEffect(() => {
+    const examples = ["Manali", "Goa", "Paris", "Bali", "Tokyo", "New York"];
+    let i = 0;
+    const id = setInterval(() => {
+      i = (i + 1) % examples.length;
+      setScoutPlaceholder(`Try "${examples[i]}"...`);
+    }, 2600);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -257,8 +320,22 @@ export default function TripsPage() {
 
   const hasActiveFilters = search || tripType || minBudget || maxBudget;
 
+  // ── Rotating hero background ──────────────────────────────────────────────
+  const { category: themeCategory } = useContext(TravelThemeContext);
+  const catKey = normalizeCategoryKey(themeCategory);
+  const heroImages = catKey ? CATEGORY_IMAGE_SETS[catKey] : null;
+  const [bgIdx, setBgIdx] = useState(0);
+
+  useEffect(() => { setBgIdx(0); }, [themeCategory]);
+
+  useEffect(() => {
+    if (!heroImages || heroImages.length <= 1) return;
+    const id = setInterval(() => setBgIdx(i => (i + 1) % heroImages.length), 10000);
+    return () => clearInterval(id);
+  }, [themeCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <div className="anim-in" style={{ padding: "0", color: "white" }}>
+    <div className="anim-in" style={{ padding: "0", color: "white", position: 'relative' }}>
       
       {/* ── HERO DISCOVERY SECTION ── */}
       <div style={{ 
@@ -270,31 +347,43 @@ export default function TripsPage() {
         overflow: 'hidden',
         borderBottom: '1px solid rgba(255,255,255,0.05)'
       }}>
+        {/* Rotating crossfade hero images */}
+        {heroImages ? heroImages.map((url, i) => (
+          <div key={url} style={{
+            position: 'absolute', inset: 0, zIndex: 0,
+            backgroundImage: `url(${url})`,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            opacity: i === bgIdx ? 1 : 0,
+            transition: 'opacity 0.8s ease',
+          }} />
+        )) : (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, backgroundImage: 'url(https://images.unsplash.com/photo-1539635278303-d4002c07eae3?w=1600&q=80)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        )}
+        {/* Dark overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,6,23,0.70)', zIndex: 0 }} />
         {/* Decor Orbs */}
-        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 600, height: 600, background: 'rgba(249,115,22,0.06)', filter: 'blur(120px)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '-20%', left: '-10%', width: 600, height: 600, background: 'rgba(124,58,237,0.08)', filter: 'blur(120px)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 600, height: 600, background: 'rgba(56,189,248,0.05)', filter: 'blur(120px)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '-20%', left: '-10%', width: 600, height: 600, background: 'rgba(56,189,248,0.04)', filter: 'blur(120px)', borderRadius: '50%' }} />
 
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 48, flexWrap: 'wrap', gap: 32 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                 <div style={{ background: 'rgba(249,115,22,0.1)', padding: '6px 12px', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Compass style={{ width: 14, height: 14, color: '#f97316' }} />
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Discovery Mode</span>
+                 <div style={{ background: 'rgba(56,189,248,0.1)', padding: '6px 12px', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Compass style={{ width: 14, height: 14, color: 'var(--accent)' }} />
+                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Discovery Mode</span>
                  </div>
               </div>
-              <h1 style={{ fontSize: 56, fontWeight: 950, margin: 0, letterSpacing: '-0.04em', lineHeight: 1 }}>Explore <span style={{ color: '#f97316' }}>Adventures</span></h1>
+              <h1 style={{ fontSize: 56, fontWeight: 700, margin: 0, letterSpacing: '-0.04em', lineHeight: 1, fontFamily: "'Space Grotesk', sans-serif" }}>Explore <span style={{ color: 'var(--accent)' }}>Adventures</span></h1>
               <p style={{ fontSize: 17, color: "#94a3b8", marginTop: 16, maxWidth: 540, lineHeight: 1.6 }}>
                 Discover verified group trips, join like-minded travelers, and embark on unforgettable journeys across the globe.
               </p>
             </div>
-            <Link href="/trips/create" style={{ 
-              background: 'linear-gradient(135deg, #f97316, #fbbf24)',
-              color: 'white', textDecoration: 'none', padding: '16px 32px',
+            <Link href="/trips/create" className="btn-primary hover:scale-105 active:scale-95 transition-all" style={{ 
+              textDecoration: 'none', padding: '16px 32px',
               borderRadius: 20, fontSize: 16, fontWeight: 800,
-              boxShadow: '0 12px 30px -10px rgba(249,115,22,0.5)',
               display: 'flex', alignItems: 'center', gap: 10
-            }} className="hover:scale-105 active:scale-95 transition-all">
+            }}>
               <Plus style={{ width: 22, height: 22 }} /> Create New Trip
             </Link>
           </div>
@@ -303,7 +392,7 @@ export default function TripsPage() {
           <div style={{ marginBottom: 40, padding: '24px 32px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
             <div>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: 'white', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                 <Sparkles style={{ width: 20, height: 20, color: '#fb923c' }} /> AI Destination Scout
+                 <Sparkles style={{ width: 20, height: 20, color: 'var(--accent)' }} /> AI Destination Scout
               </h3>
               <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Discover hidden secrets and expert itineraries for any city instantly.</p>
             </div>
@@ -311,36 +400,45 @@ export default function TripsPage() {
               <input 
                 value={cityGuide}
                 onChange={e => setCityGuide(e.target.value)}
-                placeholder="Enter a city (e.g. Manali, Paris, Tokyo)..."
-                style={{ flex: 1, padding: '12px 20px', borderRadius: 12, background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
+                placeholder={scoutPlaceholder}
+                className="ai-scout-input"
+                style={{ flex: 1, padding: '12px 20px' }}
               />
-              <button type="submit" style={{ ...btn('rgba(249,115,22,0.1)', '#f97316'), padding: '12px 24px', border: '1px solid rgba(249,115,22,0.2)' }} className="hover:bg-orange-500/20">
+              <button type="submit" className="btn-primary" style={{ padding: '12px 24px' }}>
                 Explore Guide
               </button>
             </form>
           </div>
 
-          {/* SEARCH BAR */}
-          <div style={{ 
-            background: 'rgba(255,255,255,0.02)', 
-            backdropFilter: 'blur(30px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            padding: 8, borderRadius: 32,
-            display: 'flex', gap: 8, flexWrap: 'wrap',
-            boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)'
-          }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 320 }}>
-              <Search style={{ position: 'absolute', left: 24, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, color: '#f97316' }} />
+          {/* SEARCH BAR — enhanced */}
+          <div
+            className="search-glow-box"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)',
+              backdropFilter: 'blur(30px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              padding: '6px 6px 6px 8px', borderRadius: 36,
+              display: 'flex', gap: 8, flexWrap: 'wrap',
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ position: 'relative', flex: 1, minWidth: 320, display: 'flex', alignItems: 'center' }}>
+              <Search style={{ position: 'absolute', left: 24, width: 22, height: 22, color: 'var(--accent)', flexShrink: 0 }} />
               <input 
-                style={{ width: '100%', background: 'transparent', border: 'none', padding: '22px 24px 22px 64px', borderRadius: 24, color: 'white', fontSize: 17, outline: 'none' }}
+                style={{ width: '100%', background: 'transparent', border: 'none', padding: '20px 48px 20px 64px', borderRadius: 28, color: 'white', fontSize: 16, outline: 'none', height: 64 }}
                 placeholder="Search by city, name, or adventure type..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
+              {search && (
+                <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 16, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', flexShrink: 0 }}>
+                  <X style={{ width: 14, height: 14 }} />
+                </button>
+              )}
             </div>
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '12px 8px' }} />
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '12px 4px', height: 28 }} />
             <select 
-              style={{ background: 'transparent', border: 'none', color: 'white', padding: '0 32px', fontSize: 16, fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: 'none', color: 'white', padding: '0 24px 0 12px', fontSize: 15, fontWeight: 700, outline: 'none', cursor: 'pointer', height: 64 }}
               value={sortKey} onChange={e => setSortKey(e.target.value)}
             >
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value} style={{ background: '#0f172a' }}>{o.label}</option>)}
@@ -355,8 +453,8 @@ export default function TripsPage() {
         {/* SIDEBAR */}
         <div style={{ position: 'sticky', top: 100, height: 'fit-content' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-            <SlidersHorizontal style={{ width: 20, height: 20, color: '#f97316' }} />
-            <h2 style={{ fontSize: 16, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0, color: '#f97316' }}>Filters</h2>
+            <SlidersHorizontal style={{ width: 20, height: 20, color: 'var(--accent)' }} />
+            <h2 style={{ fontSize: 16, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0, color: 'var(--accent)' }}>Filters</h2>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
@@ -387,11 +485,15 @@ export default function TripsPage() {
               <p style={{ fontSize: 11, fontWeight: 900, color: '#475569', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Experience Type</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {TRIP_TYPES.map(t => (
-                  <button key={t} onClick={() => setTripType(t === "All" ? "" : t)} style={{ 
+                  <button key={t} onClick={() => {
+                    const newType = t === "All" ? "" : t;
+                    setTripType(newType);
+                    window.setCategoryPalette?.(newType || "default", true);
+                  }} style={{ 
                     textAlign: 'left', padding: '12px 18px', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
-                    background: (t === "All" && !tripType) || tripType === t ? 'rgba(249,115,22,0.1)' : 'transparent',
+                    background: (t === "All" && !tripType) || tripType === t ? 'rgba(56,189,248,0.1)' : 'transparent',
                     border: 'none',
-                    color: (t === "All" && !tripType) || tripType === t ? '#f97316' : '#94a3b8'
+                    color: (t === "All" && !tripType) || tripType === t ? 'var(--accent)' : '#94a3b8'
                   }} className="hover:translate-x-1 hover:text-white">{t}</button>
                 ))}
               </div>
@@ -443,7 +545,37 @@ export default function TripsPage() {
                border: '1px solid rgba(255,255,255,0.05)',
                backdropFilter: 'blur(10px)'
              }}>
-               <div style={{ fontSize: 64, marginBottom: 24 }}>🗺️</div>
+               {/* SVG Traveler with Backpack — empty state illustration */}
+               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                 <svg width="96" height="120" viewBox="0 0 96 120" fill="none" xmlns="http://www.w3.org/2000/svg"
+                   style={{ animation: 'float 3s ease-in-out infinite', filter: 'drop-shadow(0 8px 24px var(--accent))' }}>
+                   {/* Body */}
+                   <ellipse cx="48" cy="68" rx="18" ry="24" fill="var(--accent)" opacity="0.85"/>
+                   {/* Head */}
+                   <circle cx="48" cy="34" r="14" fill="var(--accent)" opacity="0.9"/>
+                   {/* Hat brim */}
+                   <rect x="32" y="23" width="32" height="5" rx="2.5" fill="var(--accent-hover)" opacity="0.95"/>
+                   {/* Hat top */}
+                   <rect x="36" y="12" width="24" height="13" rx="5" fill="var(--accent-hover)" opacity="0.95"/>
+                   {/* Left arm */}
+                   <rect x="26" y="52" width="8" height="22" rx="4" fill="var(--accent)" opacity="0.7" transform="rotate(-10 26 52)"/>
+                   {/* Right arm */}
+                   <rect x="62" y="52" width="8" height="22" rx="4" fill="var(--accent)" opacity="0.7" transform="rotate(10 66 52)"/>
+                   {/* Backpack */}
+                   <rect x="54" y="50" width="20" height="26" rx="6" fill="var(--accent-hover)" opacity="0.8"/>
+                   <rect x="57" y="46" width="14" height="6" rx="3" fill="var(--accent-hover)" opacity="0.7"/>
+                   {/* Backpack pocket */}
+                   <rect x="57" y="60" width="14" height="10" rx="4" fill="var(--accent)" opacity="0.5"/>
+                   {/* Legs */}
+                   <rect x="39" y="88" width="9" height="24" rx="4.5" fill="var(--accent)" opacity="0.75"/>
+                   <rect x="51" y="88" width="9" height="24" rx="4.5" fill="var(--accent)" opacity="0.75"/>
+                   {/* Shoes */}
+                   <ellipse cx="43" cy="113" rx="8" ry="4" fill="var(--accent-hover)" opacity="0.9"/>
+                   <ellipse cx="55" cy="113" rx="8" ry="4" fill="var(--accent-hover)" opacity="0.9"/>
+                   {/* Staff */}
+                   <rect x="76" y="40" width="4" height="70" rx="2" fill="var(--accent)" opacity="0.4"/>
+                 </svg>
+               </div>
                <h3 style={{ fontSize: 24, fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>No adventures found</h3>
                <p style={{ color: '#64748b', fontSize: 16, marginTop: 12, maxWidth: 400, margin: '12px auto' }}>We couldn't find any trips matching your current search. Try resetting your filters.</p>
                <button onClick={clearFilters} style={{ 
@@ -481,6 +613,8 @@ export default function TripsPage() {
           )}
         </div>
       </div>
+      {/* Category character illustration */}
+      <CategoryCharacter />
     </div>
   );
 }

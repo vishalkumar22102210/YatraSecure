@@ -184,6 +184,9 @@ export default function TripDetailPage() {
       if (!res.ok) throw new Error('Trip not found');
       const data = await res.json();
       setTrip(data);
+      if (typeof window !== 'undefined') {
+        window.setCategoryPalette?.(data.tripType || 'default', true);
+      }
 
       // Load saved itinerary from DB
       if (data.itinerary) {
@@ -401,6 +404,22 @@ export default function TripDetailPage() {
   const isUpcoming = startDate > new Date();
   const isOngoing  = startDate <= new Date() && endDate >= new Date();
 
+  // Apply category-based palette for this trip
+  useEffect(() => {
+    if (!trip) return;
+    const raw = (trip.category || trip.tripType || "").toString().toLowerCase();
+    let key: string = "adventure";
+    if (raw.includes("mountain") || raw.includes("himala")) key = "mountains";
+    else if (raw.includes("beach") || raw.includes("ocean") || raw.includes("sea") || raw.includes("island")) key = "beach";
+    else if (raw.includes("forest") || raw.includes("nature")) key = "forest";
+    else if (raw.includes("desert") || raw.includes("dune")) key = "desert";
+    else if (raw.includes("city") || raw.includes("urban")) key = "city";
+
+    if (typeof window !== "undefined" && typeof window.setCategoryPalette === "function") {
+      window.setCategoryPalette(key);
+    }
+  }, [trip]);
+
   return (
     <div className="anim-in">
 
@@ -417,7 +436,17 @@ export default function TripDetailPage() {
           alt="Trip Cover" 
           style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.6)' }} 
         />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(6,9,14,0.9), transparent)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 32 }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(to top, rgba(6,9,14,0.92), rgba(6,9,14,0.4)),' +
+              ' var(--category-gradient, linear-gradient(135deg, #38BDF8 0%, #0284C7 100%))',
+            mixBlendMode: 'multiply',
+          }}
+        />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 32 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 24 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>

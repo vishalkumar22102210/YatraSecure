@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Compass, Map, BookOpen, Sparkles } from "lucide-react";
+import { CategoryCharacter } from "@/components/CategoryCharacter";
 
 export default function GuidesIndexPage() {
   const router = useRouter();
@@ -16,10 +17,29 @@ export default function GuidesIndexPage() {
   const POPULAR = ["Goa", "Manali", "Rishikesh", "Jaipur", "Kerala", "Bali", "Dubai"];
 
   return (
-    <div className="anim-in" style={{ padding: "40px", maxWidth: 900, margin: "0 auto", color: "white" }}>
+    <div className="anim-in" style={{ padding: "40px", maxWidth: 900, margin: "0 auto", color: "white", position: 'relative' }}>
       <div style={{ textAlign: "center", marginBottom: 40, marginTop: 40 }}>
-         <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg, #10b981, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-            <Compass style={{ width: 32, height: 32, color: "white" }} />
+         <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+           {/* Rotating globe ring */}
+           <svg
+             width="80" height="80" viewBox="0 0 80 80"
+             style={{ position: 'absolute', inset: 0, animation: 'spin 8s linear infinite', zIndex: 0, opacity: 0.55 }}
+             fill="none" xmlns="http://www.w3.org/2000/svg"
+           >
+             <ellipse cx="40" cy="40" rx="36" ry="14" stroke="url(#grGlobe)" strokeWidth="2.5" strokeDasharray="6 4"/>
+             <ellipse cx="40" cy="40" rx="36" ry="36" stroke="url(#grGlobe)" strokeWidth="1.5" strokeDasharray="4 6" opacity="0.5"/>
+             <ellipse cx="40" cy="40" rx="14" ry="36" stroke="url(#grGlobe)" strokeWidth="1.5" strokeDasharray="5 5" opacity="0.4"/>
+             <defs>
+               <linearGradient id="grGlobe" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                 <stop offset="0%" stopColor="#10b981"/>
+                 <stop offset="100%" stopColor="#06b6d4"/>
+               </linearGradient>
+             </defs>
+           </svg>
+           {/* Inner compass icon container */}
+           <div style={{ position: 'relative', zIndex: 1, width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg, #10b981, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: '0 0 24px rgba(16,185,129,0.4)' }}>
+              <Compass style={{ width: 28, height: 28, color: "white" }} />
+           </div>
          </div>
          <h1 style={{ fontSize: 36, fontWeight: 900, marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
             AI Destination Guides <Sparkles style={{ width: 24, height: 24, color: "#facc15" }} />
@@ -62,6 +82,7 @@ export default function GuidesIndexPage() {
             ))}
          </div>
       </div>
+      <CategoryCharacter />
     </div>
   );
 }

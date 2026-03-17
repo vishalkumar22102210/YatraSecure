@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import JoinByInviteCode from "@/components/JoinByInviteCode";
 import PersonalityQuiz from "@/components/PersonalityQuiz";
 import SuggestedTravelers from "@/components/SuggestedTravelers";
+import { CategoryCharacter } from "@/components/CategoryCharacter";
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -32,11 +33,11 @@ function TripCard({ trip }: { trip: any }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-            background: "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(249,115,22,0.05))",
-            border: "1px solid rgba(249,115,22,0.2)",
+            background: "rgba(56,189,248,0.08)",
+            border: "1px solid rgba(56,189,248,0.18)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <MapPin style={{ width: 18, height: 18, color: "#f97316" }} className="group-hover:scale-110 transition-transform" />
+            <MapPin style={{ width: 18, height: 18, color: "var(--accent)" }} className="group-hover:scale-110 transition-transform" />
           </div>
           <div>
             <p style={{ fontSize: 15, fontWeight: 800, color: "white", margin: 0, letterSpacing: "-0.01em" }}>{trip.name}</p>
@@ -375,12 +376,26 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [safetyData, setSafetyData] = useState<any>(null);
 
+  // Time-based gradient for greeting banner
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const gradient = hour < 12
+    ? "linear-gradient(90deg, #38bdf8 0%, #a7f3d0 100%)"
+    : hour < 17
+      ? "linear-gradient(90deg, #fbbf24 0%, #f97316 100%)"
+      : "linear-gradient(90deg, #6366f1 0%, #0ea5e9 100%)";
+
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (!stored) { router.push("/login"); return; }
     setUser(JSON.parse(stored));
     fetchTrips();
-  }, [router]);
+    // Set dashboard color system
+    document.documentElement.style.setProperty('--dashboard-bg', '#0f172a');
+    document.documentElement.style.setProperty('--dashboard-gradient-start', gradient.split(',')[0].split('(')[1]);
+    document.documentElement.style.setProperty('--dashboard-gradient-end', gradient.split(',')[1]);
+    document.documentElement.style.setProperty('--dashboard-accent', hour < 12 ? '#38bdf8' : hour < 17 ? '#fbbf24' : '#6366f1');
+  }, [router, hour, gradient]);
 
   async function fetchTrips() {
     try {
@@ -398,27 +413,48 @@ export default function DashboardPage() {
 
   const upcoming = trips.filter(t => new Date(t.startDate) > new Date()).slice(0, 4);
   const completed = trips.filter(t => new Date(t.startDate) <= new Date()).length;
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   // Dynamic Premium Stats
   const statsData = [
-    { label: "Completed Trips", value: completed, icon: CheckCircle, color: "#10b981", bg: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))", border: "rgba(16,185,129,0.2)" },
+    { label: "Completed Trips", value: completed, icon: CheckCircle, color: "var(--dashboard-accent)", bg: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))", border: "rgba(16,185,129,0.2)" },
     { label: "Upcoming Trips", value: upcoming.length, icon: Navigation, color: "#38bdf8", bg: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(56,189,248,0.05))", border: "rgba(56,189,248,0.2)" },
     { label: "Cities Explored", value: Math.max(0, trips.length * 2 - 1), icon: MapPin, color: "#f97316", bg: "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(249,115,22,0.05))", border: "rgba(249,115,22,0.2)" },
     { label: "Reputation Score", value: "94/100", icon: Star, color: "#fbbf24", bg: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))", border: "rgba(251,191,36,0.2)" },
   ];
 
   return (
-    <div className="anim-in mx-auto w-full max-w-7xl" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className="anim-in mx-auto w-full max-w-7xl" style={{ display: 'flex', flexDirection: 'column', gap: '32px', position: 'relative' }}>
 
       {/* ── HEADER ── */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ fontSize: 32, fontWeight: 900, color: "white", letterSpacing: "-0.03em", margin: "0 0 8px 0" }}>
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end", justifyContent: "space-between",
+        background: 'rgba(2,6,23,0.85)',
+        borderRadius: 24,
+        boxShadow: '0 4px 32px rgba(56,189,248,0.12)',
+        padding: '32px 36px',
+        marginBottom: 8,
+        animation: 'fade-slide-down 0.7s',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Cinematic travel photo background */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 24,
+          backgroundImage: 'url(https://images.unsplash.com/photo-1501555088652-021faa106b9b?w=1200&q=80)',
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          opacity: 0.30, zIndex: 0, pointerEvents: 'none',
+        }} />
+        {/* Dark overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 24,
+          background: gradient,
+          opacity: 0.72, zIndex: 0, pointerEvents: 'none',
+        }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: "white", letterSpacing: "-0.03em", margin: "0 0 8px 0", textShadow: '0 2px 16px rgba(0,0,0,0.4)' }}>
             {greeting}, {user?.username || user?.firstName || "Traveler"}
           </h1>
-          <p style={{ color: "#94a3b8", fontSize: 15, margin: 0, fontWeight: 500 }}>
+          <p style={{ color: "#e0e7ef", fontSize: 15, margin: 0, fontWeight: 500, textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
             Your premium travel operations and security command center.
           </p>
         </div>
@@ -485,13 +521,32 @@ export default function DashboardPage() {
               padding: "64px 24px", textAlign: "center", borderRadius: 16,
               background: "rgba(0,0,0,0.2)", border: "1px dashed rgba(255,255,255,0.1)"
             }}>
-              <Compass style={{ width: 48, height: 48, color: "#475569", margin: "0 auto 16px" }} />
+              {/* SVG Traveler empty state */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+                <svg width="80" height="100" viewBox="0 0 96 120" fill="none" xmlns="http://www.w3.org/2000/svg"
+                  style={{ animation: 'float 3s ease-in-out infinite', filter: 'drop-shadow(0 6px 18px var(--accent))' }}>
+                  <ellipse cx="48" cy="68" rx="18" ry="24" fill="var(--accent)" opacity="0.85"/>
+                  <circle cx="48" cy="34" r="14" fill="var(--accent)" opacity="0.9"/>
+                  <rect x="32" y="23" width="32" height="5" rx="2.5" fill="var(--accent-hover)" opacity="0.95"/>
+                  <rect x="36" y="12" width="24" height="13" rx="5" fill="var(--accent-hover)" opacity="0.95"/>
+                  <rect x="26" y="52" width="8" height="22" rx="4" fill="var(--accent)" opacity="0.7" transform="rotate(-10 26 52)"/>
+                  <rect x="62" y="52" width="8" height="22" rx="4" fill="var(--accent)" opacity="0.7" transform="rotate(10 66 52)"/>
+                  <rect x="54" y="50" width="20" height="26" rx="6" fill="var(--accent-hover)" opacity="0.8"/>
+                  <rect x="57" y="46" width="14" height="6" rx="3" fill="var(--accent-hover)" opacity="0.7"/>
+                  <rect x="57" y="60" width="14" height="10" rx="4" fill="var(--accent)" opacity="0.5"/>
+                  <rect x="39" y="88" width="9" height="24" rx="4.5" fill="var(--accent)" opacity="0.75"/>
+                  <rect x="51" y="88" width="9" height="24" rx="4.5" fill="var(--accent)" opacity="0.75"/>
+                  <ellipse cx="43" cy="113" rx="8" ry="4" fill="var(--accent-hover)" opacity="0.9"/>
+                  <ellipse cx="55" cy="113" rx="8" ry="4" fill="var(--accent-hover)" opacity="0.9"/>
+                  <rect x="76" y="40" width="4" height="70" rx="2" fill="var(--accent)" opacity="0.4"/>
+                </svg>
+              </div>
               <p style={{ color: "white", fontWeight: 800, fontSize: 18, marginBottom: 8 }}>No active trips</p>
               <p style={{ color: "#64748b", fontSize: 14, marginBottom: 24, maxWidth: 300, margin: "0 auto 24px" }}>Start your next journey and track it all from your command center.</p>
               <button 
                 onClick={() => router.push("/trips/create")} 
-                style={{ padding: "12px 28px", fontSize: 14, fontWeight: 800, background: "linear-gradient(135deg, #f97316, #ea580c)", border: "none", borderRadius: 12, color: "white", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}
-                className="hover:scale-105 transition-transform shadow-[0_8px_24px_rgba(249,115,22,0.4)]"
+                className="btn-primary hover:scale-105 transition-transform"
+                style={{ padding: "12px 28px", fontSize: 14 }}
               >
                 <Plus style={{ width: 18, height: 18 }} /> Create First Trip
               </button>
@@ -527,6 +582,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <CategoryCharacter />
     </div>
   );
 }

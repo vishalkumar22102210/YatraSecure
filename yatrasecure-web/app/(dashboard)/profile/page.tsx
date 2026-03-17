@@ -80,7 +80,7 @@ export default function ProfilePage() {
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
-      <Loader2 style={{ width: 28, height: 28, color: "#f97316", animation: "spin 1s linear infinite" }} />
+      <Loader2 style={{ width: 28, height: 28, color: "var(--accent)", animation: "spin 1s linear infinite" }} />
     </div>
   );
 
@@ -98,8 +98,8 @@ export default function ProfilePage() {
         <div style={{ position: "relative" }}>
           <div style={{
             width: 80, height: 80, borderRadius: "50%",
-            background: user?.profileImage ? "transparent" : "linear-gradient(135deg,#f97316,#fbbf24)",
-            border: "3px solid rgba(249,115,22,0.3)",
+            background: user?.profileImage ? "transparent" : "var(--cta-gradient)",
+            border: "3px solid rgba(56,189,248,0.3)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 24, fontWeight: 900, color: "white", overflow: "hidden", flexShrink: 0,
           }}>
@@ -114,10 +114,10 @@ export default function ProfilePage() {
             style={{
               position: "absolute", bottom: 0, right: 0,
               width: 26, height: 26, borderRadius: "50%",
-              background: "linear-gradient(135deg,#f97316,#fbbf24)",
-              border: "2px solid #0f172a",
+              background: "var(--cta-gradient)",
+              border: "2px solid var(--bg)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", boxShadow: "0 2px 8px rgba(249,115,22,0.4)",
+              cursor: "pointer", boxShadow: "0 2px 8px rgba(56,189,248,0.4)",
             }}
           >
             {uploading
@@ -153,16 +153,16 @@ export default function ProfilePage() {
       </div>
 
       {/* Reputation Stats */}
-      <div className="card" style={{ padding: 24, marginBottom: 16, background: 'linear-gradient(135deg, rgba(249,115,22,0.05), rgba(15,23,42,0.5))' }}>
+      <div className="card" style={{ padding: 24, marginBottom: 16, background: 'linear-gradient(135deg, rgba(56,189,248,0.05), rgba(15,23,42,0.5))' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sparkles style={{ width: 16, height: 16, color: '#f97316' }} /> AI Reputation Score
+            <Sparkles style={{ width: 16, height: 16, color: 'var(--accent)' }} /> AI Reputation Score
           </h3>
           <span style={{ fontSize: 24, fontWeight: 900, color: 'white' }}>{user?.reputationScore || 0} <span style={{ fontSize: 14, color: '#475569', fontWeight: 500 }}>/ 1000</span></span>
         </div>
         
         <div style={{ width: '100%', height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-          <div style={{ width: `${(user?.reputationScore || 0) / 10}%`, height: '100%', background: 'linear-gradient(90deg, #f97316, #fbbf24)', borderRadius: 10 }} />
+          <div style={{ width: `${(user?.reputationScore || 0) / 10}%`, height: '100%', background: 'var(--cta-gradient)', borderRadius: 10, transition: 'width 1s ease' }} />
         </div>
         
         <p style={{ fontSize: 12, color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>

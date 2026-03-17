@@ -56,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarWidth = desktopCollapsed ? 80 : 260;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", backgroundColor: "#020617", fontFamily: "Inter, sans-serif" }}>
+    <div style={{ minHeight: "100vh", display: "flex", backgroundColor: "var(--bg)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
       {/* ══ SIDEBAR ══════════════════════════════════════════════════════════ */}
       {/* Mobile overlay */}
@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside style={{
         position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50,
         width: sidebarWidth,
-        background: "linear-gradient(180deg, #020617 0%, #0f172a 100%)",
+        background: "linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%)",
         borderRight: "1px solid rgba(255,255,255,0.05)",
         display: "flex", flexDirection: "column",
         transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -85,9 +85,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
               <div style={{
                 width: 32, height: 32, borderRadius: 10,
-                background: "linear-gradient(135deg,#f97316,#fbbf24)",
-                boxShadow: "0 4px 12px rgba(249,115,22,0.3)",
+                background: "var(--cta-gradient)",
+                boxShadow: "0 4px 12px rgba(56,189,248,0.3)",
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                transition: "box-shadow 0.4s",
               }}>
                 <MapPin style={{ width: 16, height: 16, color: "white" }} />
               </div>
@@ -97,28 +98,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </span>
               )}
             </Link>
-            {!desktopCollapsed && (
-              <button
+            <button
                 onClick={() => setMobileSidebar(false)}
-                className="lg:hidden"
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", display: "flex", padding: 4 }}
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  color: "#94a3b8",
+                  padding: 8,
+                  transition: "all 0.2s",
+                }}
+                className="hover:bg-white/10 hover:text-white hover:rotate-90 transition-all duration-200 flex lg:hidden"
               >
                 <X style={{ width: 18, height: 18 }} />
               </button>
-            )}
           </div>
 
           {/* Create New Trip Button */}
           <Link href="/dashboard?create=true" style={{ textDecoration: 'none', display: 'block', width: '100%' }}>
             <button style={{
               marginTop: 24, width: '100%', height: 40, borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(249,115,22,0.15), rgba(249,115,22,0.05))',
-              border: '1px solid rgba(249,115,22,0.2)',
+              background: 'rgba(56,189,248,0.08)',
+              border: '1px solid rgba(56,189,248,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              color: '#f97316', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              transition: 'all 0.2s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
+              color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              transition: 'all 0.2s', fontFamily: "'Plus Jakarta Sans', sans-serif"
             }}
-            className="hover:bg-orange-500/20 hover:border-orange-500/40 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)] group"
+            className="hover:bg-[rgba(56,189,248,0.15)] group"
             >
               <Plus style={{ width: 16, height: 16 }} className="group-hover:scale-110 transition-transform" />
               {!desktopCollapsed && "New Trip"}
@@ -150,7 +157,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className={`group ${!active && "hover:bg-white/5"}`}
                     title={desktopCollapsed ? label : undefined}
                   >
-                    {active && <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 4px 4px 0", background: "#f97316" }} />}
+                    {active && <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 4px 4px 0", background: "var(--accent)", boxShadow: "0 0 10px var(--accent)", transition: "height 0.3s" }} />}
                     <Icon style={{ 
                       width: 18, height: 18, 
                       color: active ? "white" : "#64748b", flexShrink: 0,
@@ -166,10 +173,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {!desktopCollapsed && label === "Alerts" && unread > 0 && (
                       <div style={{
                         marginLeft: "auto", minWidth: 18, height: 18,
-                        borderRadius: 999, background: "#f97316",
+                        borderRadius: 999, background: "var(--accent)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: 10, fontWeight: 700, color: "white", padding: "0 5px",
-                        boxShadow: "0 0 10px rgba(249,115,22,0.4)"
+                        boxShadow: "0 0 10px rgba(56,189,248,0.4)"
                       }}>
                         {unread > 9 ? "9+" : unread}
                       </div>
@@ -238,74 +245,69 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }} 
       className="lg:!ml-0" // override for lg, we handle it via style below
       >
-        <div style={{ marginLeft: "auto", display: "none" }} className="lg:!block">
-            {/* Helper trick to push main content using standard margin styles handled by React */}
-        </div>
+        <div style={{ marginLeft: "auto", display: "none" }} className="lg:!block" />
 
-        <div style={{ 
-            display: 'contents' // allows the inner items to flow normally but respects outer flex
-        }}>
-            <div style={{ 
-                flex: 1, display: "flex", flexDirection: "column",
-                transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                marginLeft: typeof window !== 'undefined' && window.innerWidth >= 1024 ? sidebarWidth : 0
-            }} className={`lg:ml-[${sidebarWidth}px]`}>
-                {/* ── TOP NAV BAR ── */}
-                <header style={{
-                position: "sticky", top: 0, zIndex: 30,
-                background: "rgba(2,6,23,0.7)", backdropFilter: "blur(24px)",
-                borderBottom: "1px solid rgba(255,255,255,0.05)",
-                padding: "0 28px", height: 64,
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                gap: 16,
-                }}>
-
-                {/* Left — Breadcrumb & Collapse Toggle */}
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <button
-                        onClick={() => setMobileSidebar(true)}
-                        className="lg:hidden"
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", padding: 4 }}
-                    >
-                        <Menu style={{ width: 20, height: 20 }} />
-                    </button>
-                    
-                    <button
-                        onClick={() => setDesktopCollapsed(!desktopCollapsed)}
-                        className="hidden lg:flex"
-                        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, cursor: "pointer", color: "#94a3b8", padding: 6, transition: "background 0.2s" }}
-                    >
-                        {desktopCollapsed ? <PanelLeftOpen style={{ width: 16, height: 16 }} /> : <PanelLeftClose style={{ width: 16, height: 16 }} />}
-                    </button>
-
-                    <div className="hidden md:flex" style={{ alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>YatraSecure</span>
-                    <span style={{ color: "#334155" }}>/</span>
-                    <span style={{ fontSize: 13, color: "white", fontWeight: 600, textTransform: "capitalize", letterSpacing: "0.02em" }}>
-                        {pathname.split("/")[1] || "overview"}
-                    </span>
-                    </div>
+        <div style={{ display: 'contents' }}>
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            marginLeft: typeof window !== 'undefined' && window.innerWidth >= 1024 ? sidebarWidth : 0,
+            background: 'var(--dashboard-bg)', // new color system
+          }} className={`lg:ml-[${sidebarWidth}px]`}>
+            {/* ── TOP NAV BAR ── */}
+            <header style={{
+              position: "sticky", top: 0, zIndex: 30,
+              background: "linear-gradient(90deg, var(--dashboard-gradient-start), var(--dashboard-gradient-end))", // time-based gradient
+              backdropFilter: "blur(24px)",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              padding: "0 28px", height: 64,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 16,
+              boxShadow: '0 2px 16px rgba(0,0,0,0.08)',
+              animation: 'fade-slide-down 0.7s',
+            }}>
+              {/* Left — Breadcrumb & Collapse Toggle */}
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <button
+                  onClick={() => setMobileSidebar(true)}
+                  className="lg:hidden"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", padding: 4 }}>
+                  <Menu style={{ width: 20, height: 20 }} />
+                </button>
+                <button
+                  onClick={() => setDesktopCollapsed(!desktopCollapsed)}
+                  className="hidden lg:flex"
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, cursor: "pointer", color: "#94a3b8", padding: 6, transition: "background 0.2s" }}>
+                  {desktopCollapsed ? <PanelLeftOpen style={{ width: 16, height: 16 }} /> : <PanelLeftClose style={{ width: 16, height: 16 }} />}
+                </button>
+                <div className="hidden md:flex" style={{ alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>YatraSecure</span>
+                  <span style={{ color: "#334155" }}>/</span>
+                  <span style={{ fontSize: 13, color: "white", fontWeight: 600, textTransform: "capitalize", letterSpacing: "0.02em" }}>
+                    {pathname.split("/")[1] || "overview"}
+                  </span>
                 </div>
-
-                {/* Right — Actions */}
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <Link href="/notifications" style={{ textDecoration: "none" }}>
-                    <div style={{
-                        width: 36, height: 36, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        cursor: "pointer", position: "relative", transition: "all 0.2s",
-                    }}
-                    className="hover:bg-white/10 hover:border-white/20"
-                    >
+              </div>
+              {/* Right — Actions */}
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Link href="/notifications" style={{ textDecoration: "none" }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", position: "relative", transition: "all 0.2s",
+                    boxShadow: '0 0 12px var(--dashboard-accent)',
+                    animation: 'lift 0.5s',
+                  }}
+                  className="hover:bg-white/10 hover:border-white/20">
                         <Bell style={{ width: 16, height: 16, color: "#cbd5e1" }} />
                         {unread > 0 && (
                         <div style={{
                             position: "absolute", top: -2, right: -2,
                             width: 14, height: 14, borderRadius: "50%",
-                            background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center",
+                            background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center",
                             fontSize: 9, fontWeight: 800, color: "white",
-                            boxShadow: "0 0 10px rgba(249,115,22,0.4)"
+                            boxShadow: "0 0 10px rgba(56,189,248,0.4)"
                         }}>
                             {unread}
                         </div>
