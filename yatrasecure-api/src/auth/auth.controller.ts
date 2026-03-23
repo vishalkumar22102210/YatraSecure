@@ -6,8 +6,10 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -23,28 +25,34 @@ export class AuthController {
 
   @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @Post('signup')
-  async signup(@Body() signupDto: SignupDto) {
-    return this.authService.signup(signupDto);
+  async signup(
+    @Body() signupDto: SignupDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.signup(signupDto, res);
   }
 
   @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.login(loginDto, res);
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body('refresh_token') refreshToken: string) {
-    return this.authService.refreshTokens(refreshToken);
+  async refresh(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+    return this.authService.refreshTokensFromCookie(req, res);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req: any) {
-    return this.authService.logout(req.user.sub);
+  async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+    return this.authService.logout(req.user.sub, res);
   }
 
   @Throttle({ default: { limit: 3, ttl: 3600000 } })
