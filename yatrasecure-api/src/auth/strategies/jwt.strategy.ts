@@ -3,6 +3,13 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
+import type { Request } from 'express';
+
+function cookieExtractor(req: Request): string | null {
+  const cookies = (req as any)?.cookies as Record<string, string> | undefined;
+  if (!cookies) return null;
+  return cookies['access_token'] || null;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,12 +18,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private usersService: UsersService,
   ) {
     const secret = configService.get<string>('JWT_SECRET');
-    // ── Secret missing hai toh startup pe hi crash karo ──
+
     if (!secret) {
       throw new Error('JWT_SECRET is not defined in .env!');
     }
+
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        cookieExtractor,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: secret,
     });
