@@ -10,6 +10,7 @@ import * as crypto from 'crypto';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
+import { UserMapperService } from '../common/mappers/user.mapper';
 import { EmailService } from '../email/email.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -25,6 +26,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
+    private userMapper: UserMapperService,
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
@@ -38,7 +40,6 @@ export class AuthService {
   }
 
   private getCookieDomain(): string | undefined {
-    // optional: set COOKIE_DOMAIN in prod if you want cross-subdomain cookies
     return this.configService.get<string>('COOKIE_DOMAIN') || undefined;
   }
 
@@ -51,22 +52,21 @@ export class AuthService {
   }
 
   private setAuthCookies(res: Response, tokens: TokenPair) {
-    const secure = this.isProd(); // production me https required
-    const sameSite = secure ? 'none' : 'lax'; // cross-site => none + secure
+    const secure = this.isProd();
+    const sameSite = secure ? 'strict' : 'lax'; // ✅ Changed to strict
     const domain = this.getCookieDomain();
 
     // Access token: 15 min
     res.cookie(this.getAccessCookieName(), tokens.access_token, {
-      httpOnly: true,
-      secure,
-      sameSite: sameSite as any,
+      httpOnly: true, // ✅ Cannot be accessed by JavaScript
+      secure, // ✅ HTTPS only in production
+      sameSite: sameSite as any, // ✅ CSRF protection
       path: '/',
       maxAge: tokens.expires_in * 1000,
       domain,
     });
 
-    // Refresh token: 30 days
-    // Scope tight rakho (recommended): only refresh endpoint
+    // Refresh token: 30 days (path restricted)
     res.cookie(this.getRefreshCookieName(), tokens.refresh_token, {
       httpOnly: true,
       secure,
@@ -79,7 +79,7 @@ export class AuthService {
 
   private clearAuthCookies(res: Response) {
     const secure = this.isProd();
-    const sameSite = secure ? 'none' : 'lax';
+    const sameSite = secure ? 'strict' : 'lax';
     const domain = this.getCookieDomain();
 
     res.clearCookie(this.getAccessCookieName(), {
@@ -107,7 +107,13 @@ export class AuthService {
 
   // ─────────────────────────────────────────────────────────────
   // Auth flows
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────���───────────────────────
+
+  /**
+   * Signup
+   * ✅ SECURE: Only returns safe user data + expires_in
+   * ✅ Tokens ONLY in httpOnly cookies, NOT in response body
+   */
   async signup(signupDto: SignupDto, res: Response) {
     const { email, username, password } = signupDto;
 
@@ -136,16 +142,27 @@ export class AuthService {
         verificationToken: hashedVerificationToken,
         verificationExpiry,
       },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        profileImage: true,
+        bio: true,
+        city: true,
+        reputationScore: true,
+        isVerified: true,
+        isEmailVerified: true,
+        createdAt: true,
+      },
     });
 
-    // Send welcome email (non-blocking)
+    // Send emails (non-blocking)
     try {
       await this.emailService.sendWelcomeEmail(user.email, user.username);
     } catch (error) {
       console.error('Failed to send welcome email:', error);
     }
 
-    // Send verification email (non-blocking)
     try {
       await this.emailService.sendVerificationEmail(
         user.email,
@@ -159,45 +176,46 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
     await this.updateRefreshToken(user.id, tokens.refresh_token);
 
-    // ✅ httpOnly cookies set
+    // ✅ Set tokens in httpOnly cookies ONLY
     this.setAuthCookies(res, tokens);
 
-    const { password: _, ...userWithoutPassword } = user;
-
-    // ✅ FIXED: Return tokens in response body + expires_in
+    // ✅ Response contains ONLY safe user data
+    // ❌ NO tokens in response body
     return {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      user: this.userMapper.toSafeUserDto(user),
       expires_in: tokens.expires_in,
-      user: userWithoutPassword,
+      message: 'Signup successful. Please verify your email.',
     };
   }
 
+  /**
+   * Login
+   * ✅ SECURE: Only returns safe user data + expires_in
+   * ✅ Tokens ONLY in httpOnly cookies, NOT in response body
+   */
   async login(loginDto: LoginDto, res: Response) {
     const { email, password } = loginDto;
 
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.usersService.findByEmail(email);
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await this.usersService.validatePassword(
+      password,
+      user.password,
+    );
     if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
 
     const tokens = await this.generateTokens(user.id, user.email);
-
-    // ✅ store latest refresh token hash => rotation base
     await this.updateRefreshToken(user.id, tokens.refresh_token);
 
-    // ✅ httpOnly cookies set
+    // ✅ Set tokens in httpOnly cookies ONLY
     this.setAuthCookies(res, tokens);
 
-    const { password: _, ...userWithoutPassword } = user;
-
-    // ✅ FIXED: Return tokens in response body + expires_in
+    // ��� Response contains ONLY safe user data
     return {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      user: this.userMapper.toSafeUserDto(user),
       expires_in: tokens.expires_in,
-      user: userWithoutPassword,
+      message: 'Login successful',
     };
   }
 
@@ -225,7 +243,11 @@ export class AuthService {
     });
   }
 
-  // ✅ Refresh: read from cookie + ROTATE every call
+  /**
+   * Refresh token from cookie
+   * ✅ SECURE: Returns ONLY expires_in, no tokens in body
+   * ✅ New tokens set in httpOnly cookies
+   */
   async refreshTokensFromCookie(req: Request, res: Response) {
     const refreshToken = this.extractRefreshTokenFromReq(req);
     if (!refreshToken) throw new UnauthorizedException('Refresh token missing');
@@ -237,34 +259,34 @@ export class AuthService {
 
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub as string },
+        select: { email: true, refreshToken: true },
       });
 
       if (!user || !user.refreshToken) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      // compare presented refresh token with stored hash
       const matches = await bcrypt.compare(refreshToken, user.refreshToken);
       if (!matches) throw new UnauthorizedException('Invalid refresh token');
 
-      // ✅ rotation: new pair, overwrite DB hash
-      const tokens = await this.generateTokens(user.id, user.email);
-      await this.updateRefreshToken(user.id, tokens.refresh_token);
+      // ✅ Token rotation: generate new pair
+      const tokens = await this.generateTokens(payload.sub, user.email);
+      await this.updateRefreshToken(payload.sub, tokens.refresh_token);
 
-      // update cookies
+      // ✅ Update cookies with new tokens
       this.setAuthCookies(res, tokens);
 
-      // ✅ FIXED: Return tokens in response body
-      return {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_in: tokens.expires_in,
-      };
+      // ✅ Response contains ONLY expires_in
+      // ❌ NO tokens, NO user data
+      return { expires_in: tokens.expires_in };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
+  /**
+   * Logout
+   */
   async logout(userId: string, res: Response) {
     await this.prisma.user.update({
       where: { id: userId },
@@ -276,8 +298,10 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
+  // Password reset flows (unchanged, already secure)
+
   async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.usersService.findByEmail(email);
 
     if (!user) {
       return {
@@ -288,7 +312,7 @@ export class AuthService {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = await bcrypt.hash(resetToken, 10);
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+    const resetTokenExpiry = new Date(Date.now() + 3600000);
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -402,7 +426,7 @@ export class AuthService {
   }
 
   async resendVerificationEmail(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.usersService.findByEmail(email);
 
     if (!user) {
       return {
@@ -417,7 +441,7 @@ export class AuthService {
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedVerificationToken = await bcrypt.hash(verificationToken, 10);
-    const verificationExpiry = new Date(Date.now() + 86400000); // 24 hours
+    const verificationExpiry = new Date(Date.now() + 86400000);
 
     await this.prisma.user.update({
       where: { id: user.id },

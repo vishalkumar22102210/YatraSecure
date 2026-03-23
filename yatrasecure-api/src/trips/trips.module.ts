@@ -11,9 +11,10 @@ import { MarketplaceService } from './marketplace.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AssistantService } from './assistant.service';
 import { MatchmakingModule } from '../common/matchmaking/matchmaking.module';
+import { CommonModule } from 'src/common/common.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, MatchmakingModule],
+  imports: [PrismaModule, NotificationsModule, MatchmakingModule, CommonModule],
   controllers: [TripsController],
   providers: [
     TripsService, 

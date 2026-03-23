@@ -1,11 +1,69 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserMapperService } from '../common/mappers/user.mapper';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private userMapper: UserMapperService,
+  ) {}
 
+  // ✅ Safe selection fields for all queries
+  private readonly SAFE_USER_SELECT = {
+    id: true,
+    email: true,
+    username: true,
+    profileImage: true,
+    bio: true,
+    age: true,
+    city: true,
+    state: true,
+    country: true,
+    firstName: true,
+    lastName: true,
+    phone: true,
+    travelStyle: true,
+    budgetRange: true,
+    travelPersonality: true,
+    reputationScore: true,
+    isVerified: true,
+    isEmailVerified: true,
+    createdAt: true,
+    updatedAt: true,
+  };
+
+  // ✅ Minimal selection for lists
+  private readonly MINIMAL_SELECT = {
+    id: true,
+    username: true,
+    profileImage: true,
+    reputationScore: true,
+    isVerified: true,
+    travelPersonality: true,
+  };
+
+  // ✅ Public profile selection
+  private readonly PUBLIC_SELECT = {
+    id: true,
+    username: true,
+    profileImage: true,
+    bio: true,
+    city: true,
+    state: true,
+    country: true,
+    travelStyle: true,
+    travelPersonality: true,
+    reputationScore: true,
+    isVerified: true,
+    createdAt: true,
+    // ❌ NO email
+  };
+
+  /**
+   * Create user (signup)
+   */
   async create(email: string, username: string, password: string) {
     const existingEmail = await this.prisma.user.findUnique({
       where: { email },
@@ -29,42 +87,63 @@ export class UsersService {
         username,
         password: hashedPassword,
       },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        createdAt: true,
-      },
+      select: this.SAFE_USER_SELECT,
     });
 
-    return user;
+    return this.userMapper.toSafeUserDto(user);
   }
 
+  /**
+   * Find by email (FOR INTERNAL USE ONLY)
+   * Returns full user including password
+   */
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
     });
   }
 
+  /**
+   * Find by ID (safe response)
+   */
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      select: this.SAFE_USER_SELECT,
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.userMapper.toSafeUserDto(user);
+  }
+
+  /**
+   * Update profile
+   */
+  async updateProfile(userId: string, data: any) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: this.SAFE_USER_SELECT,
+    });
+
+    return this.userMapper.toSafeUserDto(user);
+  }
+
+  /**
+   * Get public profile
+   */
+  async getPublicProfile(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
       select: {
-        id: true,
-        email: true,
-        username: true,
-        profileImage: true,
-        bio: true,
-        age: true,
-        city: true,
-        state: true,
-        travelStyle: true,
-        budgetRange: true, // @ts-ignore
-        travelPersonality: true, // @ts-ignore
-        reputationScore: true, // @ts-ignore
-        isVerified: true,
-        createdAt: true,
-        updatedAt: true,
+        ...this.PUBLIC_SELECT,
+        // @ts-ignore
+        _count: {
+          select: { followers: true, following: true, trips: true },
+        },
       },
     });
 
@@ -72,117 +151,132 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    const { _count, ...userWithoutCount } = user as any;
+
+    return this.userMapper.toUserWithFollowDto(
+      userWithoutCount,
+      false,
+      _count,
+    );
   }
 
-  // NEW: Update user profile
-  async updateProfile(
-    userId: string,
-    data: {
-      bio?: string;
-      age?: number;
-      city?: string;
-      state?: string;
-      travelStyle?: string[];
-      budgetRange?: string;
-      travelPersonality?: string;
-    },
-  ) {
-    const user = await this.prisma.user.update({
-      where: { id: userId },
-      data,
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        profileImage: true,
-        bio: true,
-        age: true,
-        city: true,
-        state: true,
-        travelStyle: true,
-        budgetRange: true, // @ts-ignore
-        travelPersonality: true, // @ts-ignore
-        reputationScore: true, // @ts-ignore
-        isVerified: true,
-        updatedAt: true,
-      },
+  /**
+   * Get multiple users (for suggestions, lists)
+   */
+  async findMany(ids: string[]) {
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: this.MINIMAL_SELECT,
     });
 
-    return user;
+    return this.userMapper.toMinimalUserDtoArray(users);
   }
 
-  async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+  /**
+   * Validate password
+   */
+  async validatePassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // FRIENDS & FOLLOW SYSTEM
-  // ══════════════════════════════════════════════════════════════════════════════
-  async followUser(currentUserId: string, targetUsername: string) {
-    const target = await this.prisma.user.findUnique({ where: { username: targetUsername } });
-    if (!target) throw new NotFoundException('User not found');
-    if (target.id === currentUserId) throw new ConflictException('You cannot follow yourself');
+  /**
+   * Follow user
+   */
+  async followUser(followerId: string, targetUsername: string) {
+    const target = await this.prisma.user.findUnique({
+      where: { username: targetUsername },
+      select: { id: true },
+    });
 
-    return this.prisma.user.update({
-      where: { id: currentUserId },
+    if (!target) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (followerId === target.id) {
+      throw new ConflictException('You cannot follow yourself');
+    }
+
+    await this.prisma.user.update({
+      where: { id: followerId },
       data: {
         // @ts-ignore
         following: {
-          connect: { id: target.id }
-        }
-      }
+          connect: { id: target.id },
+        },
+      },
     });
+
+    return { message: 'Followed successfully' };
   }
 
-  async unfollowUser(currentUserId: string, targetUsername: string) {
-    const target = await this.prisma.user.findUnique({ where: { username: targetUsername } });
-    if (!target) throw new NotFoundException('User not found');
+  /**
+   * Unfollow user
+   */
+  async unfollowUser(followerId: string, targetUsername: string) {
+    const target = await this.prisma.user.findUnique({
+      where: { username: targetUsername },
+      select: { id: true },
+    });
 
-    return this.prisma.user.update({
-      where: { id: currentUserId },
+    if (!target) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id: followerId },
       data: {
         // @ts-ignore
         following: {
-          disconnect: { id: target.id }
-        }
-      }
+          disconnect: { id: target.id },
+        },
+      },
     });
+
+    return { message: 'Unfollowed successfully' };
   }
 
-  async getPublicProfile(username: string, currentUserId?: string) {
+  /**
+   * Get followers
+   */
+  async getFollowers(username: string) {
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: {
-        id: true,
-        username: true,
-        profileImage: true,
-        bio: true,
-        city: true,
-        state: true,
-        country: true,
-        travelStyle: true, // @ts-ignore
-        travelPersonality: true, // @ts-ignore
-        reputationScore: true, // @ts-ignore
-        isVerified: true,
         // @ts-ignore
-        _count: {
-          // @ts-ignore
-          select: { followers: true, following: true, trips: true }
+        followers: {
+          select: this.MINIMAL_SELECT,
         },
-        // @ts-ignore
-        followers: currentUserId ? {
-          where: { id: currentUserId },
-          select: { id: true }
-        } : false
-      } as any
+      },
     });
 
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-    const isFollowing = currentUserId ? user.followers.length > 0 : false;
-    const { followers, ...rest } = user as any;
+    return this.userMapper.toMinimalUserDtoArray(user.followers as any);
+  }
 
-    return { ...rest, isFollowing };
+  /**
+   * Get following
+   */
+  async getFollowing(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        // @ts-ignore
+        following: {
+          select: this.MINIMAL_SELECT,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.userMapper.toMinimalUserDtoArray(user.following as any);
   }
 }

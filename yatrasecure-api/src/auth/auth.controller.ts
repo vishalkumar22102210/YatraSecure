@@ -23,8 +23,14 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  /**
+   * POST /auth/signup
+   * ✅ SECURE: Returns only safe user data in response
+   * ✅ Tokens are in httpOnly cookies
+   */
   @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
   async signup(
     @Body() signupDto: SignupDto,
     @Res({ passthrough: true }) res: Response,
@@ -32,6 +38,11 @@ export class AuthController {
     return this.authService.signup(signupDto, res);
   }
 
+  /**
+   * POST /auth/login
+   * ✅ SECURE: Returns only safe user data in response
+   * ✅ Tokens are in httpOnly cookies
+   */
   @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -42,19 +53,38 @@ export class AuthController {
     return this.authService.login(loginDto, res);
   }
 
+  /**
+   * POST /auth/refresh
+   * ✅ SECURE: Reads refresh token from httpOnly cookie
+   * ✅ Returns only expires_in, no tokens or user data
+   */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+  async refresh(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     return this.authService.refreshTokensFromCookie(req, res);
   }
 
+  /**
+   * POST /auth/logout
+   * ✅ SECURE: Requires JWT authentication
+   */
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     return this.authService.logout(req.user.sub, res);
   }
 
+  /**
+   * POST /auth/forgot-password
+   * ✅ SECURE: Does not expose whether email exists
+   */
   @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
@@ -62,6 +92,9 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
+  /**
+   * POST /auth/reset-password
+   */
   @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
@@ -72,16 +105,26 @@ export class AuthController {
     );
   }
 
+  /**
+   * POST /auth/verify-email
+   */
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto.token);
   }
 
+  /**
+   * POST /auth/resend-verification
+   */
   @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
-  async resendVerification(@Body() resendVerificationDto: ResendVerificationDto) {
-    return this.authService.resendVerificationEmail(resendVerificationDto.email);
+  async resendVerification(
+    @Body() resendVerificationDto: ResendVerificationDto,
+  ) {
+    return this.authService.resendVerificationEmail(
+      resendVerificationDto.email,
+    );
   }
 }

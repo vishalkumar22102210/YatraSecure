@@ -1,4 +1,16 @@
-import { Controller, Get, Patch, Body, UseGuards, Request, Param, Post, Delete } from '@nestjs/common';
+import { 
+  Controller, 
+  Get, 
+  Patch, 
+  Body, 
+  Param, 
+  UseGuards, 
+  Request, 
+  Post, 
+  Delete,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -7,50 +19,86 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
-  // GET /api/users/me - Get current logged-in user
+  /**
+   * GET /users/me
+   * ✅ SECURE: Protected - returns own user data
+   */
   @Get('me')
-  @UseGuards(JwtAuthGuard) // 👈 Protected route
-  async getCurrentUser(@Request() req) {
-    return req.user; // User is attached by JWT strategy
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getCurrentUser(@Request() req: any) {
+    return this.usersService.findById(req.user.sub);
   }
 
+  /**
+   * PATCH /users/me
+   * ✅ SECURE: Protected - update own profile
+   */
   @Patch('me')
   @UseGuards(JwtAuthGuard)
-  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
-    const userId = req.user.id;
-    return this.usersService.updateProfile(userId, updateProfileDto);
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(
+    @Request() req: any,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(req.user.sub, updateProfileDto);
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // FRIENDS & FOLLOW SYSTEM
-  // ══════════════════════════════════════════════════════════════════════════════
+  /**
+   * GET /users/profile/:username
+   * ✅ SECURE: Public - returns safe profile data (NO email)
+   */
   @Get('profile/:username')
-  async getProfile(@Request() req, @Param('username') username: string) {
-    // Optional auth extraction to see if current user follows them
-    const authHeader = req.headers.authorization;
-    let currentUserId = null;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-       try {
-         // rudimentary check if we want, or just assume frontend passes it via guard
-         // Better: use an OptionalJwtGuard if needed. 
-       } catch (e) {}
-    }
-    // For simplicity, we'll let frontend pass ?userId= current user id
-    const cId = req.query.userId;
-    return this.usersService.getPublicProfile(username, cId);
+  @HttpCode(HttpStatus.OK)
+  async getProfile(@Param('username') username: string) {
+    return this.usersService.getPublicProfile(username);
   }
 
+  /**
+   * POST /users/profile/:username/follow
+   * ✅ SECURE: Protected - follow user
+   */
   @Post('profile/:username/follow')
   @UseGuards(JwtAuthGuard)
-  async followUser(@Request() req, @Param('username') username: string) {
-    await this.usersService.followUser(req.user.id, username);
-    return { message: 'Followed successfully' };
+  @HttpCode(HttpStatus.OK)
+  async followUser(
+    @Request() req: any,
+    @Param('username') username: string,
+  ) {
+    return this.usersService.followUser(req.user.sub, username);
   }
 
+  /**
+   * DELETE /users/profile/:username/follow
+   * ✅ SECURE: Protected - unfollow user
+   */
   @Delete('profile/:username/follow')
   @UseGuards(JwtAuthGuard)
-  async unfollowUser(@Request() req, @Param('username') username: string) {
-    await this.usersService.unfollowUser(req.user.id, username);
-    return { message: 'Unfollowed successfully' };
+  @HttpCode(HttpStatus.OK)
+  async unfollowUser(
+    @Request() req: any,
+    @Param('username') username: string,
+  ) {
+    return this.usersService.unfollowUser(req.user.sub, username);
+  }
+
+  /**
+   * GET /users/profile/:username/followers
+   * ✅ SECURE: Public - returns minimal user data
+   */
+  @Get('profile/:username/followers')
+  @HttpCode(HttpStatus.OK)
+  async getFollowers(@Param('username') username: string) {
+    return this.usersService.getFollowers(username);
+  }
+
+  /**
+   * GET /users/profile/:username/following
+   * ✅ SECURE: Public - returns minimal user data
+   */
+  @Get('profile/:username/following')
+  @HttpCode(HttpStatus.OK)
+  async getFollowing(@Param('username') username: string) {
+    return this.usersService.getFollowing(username);
   }
 }

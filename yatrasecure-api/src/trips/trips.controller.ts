@@ -1,20 +1,32 @@
 import {
-  Controller, Post, Get, Patch, Put, Delete,
-  Body, Param, Query, UseGuards, Request,
-  ForbiddenException, NotFoundException,
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  ForbiddenException,
+  NotFoundException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { TripsService }           from './trips.service';
-import { ItineraryService }       from './itinerary.service';
+import { TripsService } from './trips.service';
+import { ItineraryService } from './itinerary.service';
 import { AssistantService, ChatMessage } from './assistant.service';
-import { CreateTripDto }          from './dto/create-trip.dto';
-import { JoinTripDto }            from './dto/join-trip.dto';
-import { InsightsService }         from './insights.service';
+import { CreateTripDto } from './dto/create-trip.dto';
+import { JoinTripDto } from './dto/join-trip.dto';
+import { InsightsService } from './insights.service';
 import { DestinationGuideService } from './destination-guide.service';
-import { ExplorationService }      from './exploration.service';
-import { MarketplaceService }      from './marketplace.service';
+import { ExplorationService } from './exploration.service';
+import { MarketplaceService } from './marketplace.service';
 import { UpdateRequestStatusDto } from './dto/update-request-status.dto';
-import { JwtAuthGuard }           from '../auth/guards/jwt-auth.guard';
-import { OptionalJwtAuthGuard }   from '../auth/guards/optional-jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 
 @Controller('trips')
 export class TripsController {
@@ -28,33 +40,37 @@ export class TripsController {
     private marketplaceService: MarketplaceService,
   ) {}
 
-  // ── Create Trip ──────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // TRIP CRUD
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   @Post()
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
   async createTrip(@Request() req: any, @Body() dto: CreateTripDto) {
     const userId = req.user.id ?? req.user.sub;
     return this.tripsService.createTrip(userId, dto);
   }
 
-  // ── List Trips ────���──────────────────────────────────────────────────────────
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async listTrips(@Query() query: any, @Request() req: any) {
     const userId = req?.user?.id ?? req?.user?.sub ?? undefined;
     return this.tripsService.findAll(query, userId);
   }
 
-  // ── Get Trip by ID ───────────────────────────────────────────────────────────
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async getTrip(@Param('id') id: string, @Request() req: any) {
     const userId = req?.user?.id ?? req?.user?.sub ?? undefined;
     return this.tripsService.getTripById(id, userId);
   }
 
-  // ── Update Trip ──────────────────────────────────────────────────────────────
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async updateTrip(
     @Request() req: any,
     @Param('id') id: string,
@@ -64,17 +80,42 @@ export class TripsController {
     return this.tripsService.updateTrip(id, updateDto, userId);
   }
 
-  // ── Delete Trip ──────────────────────────────────────────────────────────────
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async deleteTrip(@Request() req: any, @Param('id') id: string) {
     const userId = req.user.id ?? req.user.sub;
     return this.tripsService.deleteTrip(id, userId);
   }
 
-  // ── Request to Join (Public trips) ──────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // MEMBERS - ✅ SECURE: Safe data only
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  @Get(':id/members')
+  @HttpCode(HttpStatus.OK)
+  async listMembers(@Param('id') tripId: string) {
+    return this.tripsService.listMembers(tripId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // JOIN REQUESTS - ✅ SECURE: Admin only
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  @Get(':id/requests')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getJoinRequests(
+    @Request() req: any,
+    @Param('id') tripId: string,
+  ) {
+    const adminId = req.user.id ?? req.user.sub;
+    return this.tripsService.listJoinRequests(tripId, adminId);
+  }
+
   @Post(':id/join')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
   async joinTrip(
     @Request() req: any,
     @Param('id') tripId: string,
@@ -84,9 +125,9 @@ export class TripsController {
     return this.tripsService.requestToJoinTrip(tripId, userId, dto);
   }
 
-  // ── Join by Invite Code ──────────────────────────────────────────────────────
   @Post('join/invite')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async joinByInviteCode(
     @Request() req: any,
     @Body('code') code: string,
@@ -95,58 +136,9 @@ export class TripsController {
     return this.tripsService.joinByInviteCode(code, userId);
   }
 
-  // ── List Join Requests (Admin) ───────────────────────────────────────────────
-  @Get(':id/requests')
-  @UseGuards(JwtAuthGuard)
-  async getJoinRequests(
-    @Request() req: any,
-    @Param('id') tripId: string,
-  ) {
-    const adminId = req.user.id ?? req.user.sub;
-    return this.tripsService.listJoinRequests(tripId, adminId);
-  }
-
-  // ── 📊 Trip Insights (Phase 12) ─────────────────────────────────────────────
-  @Get(':id/insights')
-  @UseGuards(JwtAuthGuard)
-  async getTripInsights(
-    @Request() req: any,
-    @Param('id') tripId: string,
-  ) {
-    // Only members can see insights (simplified logic)
-    return this.insightsService.getTripSummaryStats(tripId);
-  }
-
-  @Get('explore/guide/:city')
-  async getDestinationGuide(@Param('city') city: string) {
-    return this.guideService.getDestinationGuide(city);
-  }
-
-  @Get('explore/hidden-gems/:city')
-  async discoverGems(@Param('city') city: string) {
-    return this.explorationService.discoverHiddenGems(city);
-  }
-
-  @Get('marketplace/offerings')
-  async getGlobalMarketplace(
-    @Query('category') category?: string,
-    @Query('city') city?: string,
-  ) {
-    return this.marketplaceService.getMarketplaceOfferings(category, city);
-  }
-
-  @Post(':id/story/generate')
-  @UseGuards(JwtAuthGuard)
-  async generateStory(
-    @Request() req: any,
-    @Param('id') tripId: string,
-  ) {
-    return this.insightsService.generateTripStory(tripId);
-  }
-
-  // ── Update Join Request Status (Admin) ──────────────────────────────────────
   @Patch(':id/requests/:requestId')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async updateJoinRequestStatus(
     @Request() req: any,
     @Param('id') tripId: string,
@@ -157,15 +149,9 @@ export class TripsController {
     return this.tripsService.updateJoinRequest(tripId, requestId, adminId, dto);
   }
 
-  // ── List Members ─────────────────────────────────────────────────────────────
-  @Get(':id/members')
-  async listMembers(@Param('id') tripId: string) {
-    return this.tripsService.listMembers(tripId);
-  }
-
-  // ── Regenerate Invite Code ───────────────────────────────────────────────────
   @Post(':id/invite/regenerate')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async regenerateInviteCode(
     @Request() req: any,
     @Param('id') tripId: string,
@@ -174,13 +160,13 @@ export class TripsController {
     return this.tripsService.regenerateInviteCode(tripId, userId);
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // ITINERARY ENDPOINTS
-  // ══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ITINERARY
+  // ═══════════════════════════════════════════════════════════════════════════════
 
-  // ── Generate Itinerary with Groq AI ─────────────────────────────────────────
   @Post(':id/itinerary/generate')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async generateItinerary(
     @Param('id') tripId: string,
     @Request() req: any,
@@ -195,13 +181,13 @@ export class TripsController {
 
     const itinerary = await this.itineraryService.generateItinerary(
       {
-        name:        trip.name,
-        fromCity:    trip.fromCity,
-        toCity:      trip.toCity,
-        startDate:   trip.startDate.toISOString(),
-        endDate:     trip.endDate.toISOString(),
-        budget:      trip.budget,
-        tripType:    trip.tripType,
+        name: trip.name,
+        fromCity: trip.fromCity,
+        toCity: trip.toCity,
+        startDate: trip.startDate.toISOString(),
+        endDate: trip.endDate.toISOString(),
+        budget: trip.budget,
+        tripType: trip.tripType,
         description: trip.description ?? undefined,
       },
       customPrompt,
@@ -211,9 +197,9 @@ export class TripsController {
     return { itinerary };
   }
 
-  // ── Save / Edit Itinerary ────────────────────────────────────────────────────
   @Patch(':id/itinerary')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async updateItinerary(
     @Param('id') tripId: string,
     @Body('itinerary') itinerary: string,
@@ -230,12 +216,13 @@ export class TripsController {
     return { itinerary: updated.itinerary };
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // CREW AI BOOKING AGENTS ENDPOINTS
-  // ══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // CREW AI BOOKING AGENTS
+  // ═══════════════════════════════════════════════════════════════════════════════
 
   @Post(':id/booking-agents')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async runBookingAgents(
     @Param('id') tripId: string,
     @Request() req: any,
@@ -243,8 +230,7 @@ export class TripsController {
     @Body('answers') answers?: any,
   ) {
     const userId = req.user.id ?? req.user.sub;
-    
-    // Ensure trip exists and user has access (for simplicity, only admin right now)
+
     const trip = await this.tripsService.findById(tripId);
     if (!trip) throw new NotFoundException('Trip not found');
     if (trip.adminId !== userId)
@@ -253,19 +239,18 @@ export class TripsController {
     return this.tripsService.runBookingAgents(trip, customPrompt, answers);
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // AI TRAVEL ASSISTANT CHAT
-  // ══════════════════════════════════════════════════════════════════════════════
-  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // AI TRAVEL ASSISTANT
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   @Post(':id/assistant')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async chatWithAssistant(
     @Param('id') tripId: string,
     @Request() req: any,
     @Body('messages') messages: ChatMessage[],
   ) {
-    // Only verify that the user is part of the trip or an admin
-    // We can do a quick check via tripsService
     const trip = await this.tripsService.findById(tripId);
     if (!trip) throw new NotFoundException('Trip not found');
 
@@ -273,11 +258,13 @@ export class TripsController {
     return { response: result };
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // SMART BUDGET PREDICTOR
-  // ══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // BUDGET PREDICTOR
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   @Post(':id/budget-predict')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async predictBudget(
     @Param('id') tripId: string,
     @Request() req: any,
@@ -286,17 +273,22 @@ export class TripsController {
     if (!trip) throw new NotFoundException('Trip not found');
 
     const members = await this.tripsService.listMembers(tripId);
-    const memberCount = members.length || 1;
+    const memberCount = (members as any).data?.length || 1;
 
-    const result = await this.assistantService.predictBudget(trip, memberCount);
+    const result = await this.assistantService.predictBudget(
+      trip,
+      memberCount,
+    );
     return result;
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // AI EXPLORATION ENGINE (HIDDEN GEMS)
-  // ══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // EXPLORATION ENGINE
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   @Post(':id/explore')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async exploreHiddenGems(
     @Param('id') tripId: string,
     @Body('query') query: string,
@@ -308,86 +300,148 @@ export class TripsController {
     return result;
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // AUTONOMOUS TRAVEL MARKETPLACE
-  // ══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // MARKETPLACE
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   @Get(':id/marketplace')
   @UseGuards(JwtAuthGuard)
-  async getMarketplace(
-    @Param('id') tripId: string,
-  ) {
+  @HttpCode(HttpStatus.OK)
+  async getMarketplace(@Param('id') tripId: string) {
     const trip = await this.tripsService.findById(tripId);
     if (!trip) throw new NotFoundException('Trip not found');
 
-    const result = await this.assistantService.getMarketplaceRecommendations(trip);
+    const result =
+      await this.assistantService.getMarketplaceRecommendations(trip);
     return result;
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // SHARED PACKING CHECKLIST 
-  // ══════════════════════════════════════════════════════════════════════════════
-  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // CHECKLIST
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   @Get(':id/checklist')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   getChecklist(@Param('id') tripId: string) {
     return this.tripsService.getChecklist(tripId);
   }
 
   @Post(':id/checklist/suggest')
   @UseGuards(JwtAuthGuard)
-  async getChecklistSuggestions(
-    @Param('id') tripId: string,
-  ) {
+  @HttpCode(HttpStatus.OK)
+  async getChecklistSuggestions(@Param('id') tripId: string) {
     const trip = await this.tripsService.findById(tripId);
     if (!trip) throw new NotFoundException('Trip not found');
-    const suggestions = await this.assistantService.suggestChecklistItems(trip);
+    const suggestions = await this.assistantService.suggestChecklistItems(
+      trip,
+    );
     return { suggestions };
   }
 
   @Post(':id/checklist')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
   addChecklistItem(
     @Param('id') tripId: string,
     @Request() req: any,
     @Body('name') name: string,
   ) {
-    return this.tripsService.addChecklistItem(tripId, req.user.id, name);
+    return this.tripsService.addChecklistItem(
+      tripId,
+      req.user.id ?? req.user.sub,
+      name,
+    );
   }
 
   @Put(':id/checklist/:itemId')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   toggleChecklistItem(
     @Param('id') tripId: string,
     @Param('itemId') itemId: string,
     @Request() req: any,
     @Body('isCompleted') isCompleted: boolean,
   ) {
-    return this.tripsService.toggleChecklistItem(tripId, itemId, req.user.id, isCompleted);
+    return this.tripsService.toggleChecklistItem(
+      tripId,
+      itemId,
+      req.user.id ?? req.user.sub,
+      isCompleted,
+    );
   }
 
   @Delete(':id/checklist/:itemId')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   removeChecklistItem(
     @Param('id') tripId: string,
     @Param('itemId') itemId: string,
     @Request() req: any,
   ) {
-    return this.tripsService.removeChecklistItem(tripId, itemId, req.user.id);
+    return this.tripsService.removeChecklistItem(
+      tripId,
+      itemId,
+      req.user.id ?? req.user.sub,
+    );
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // DESTINATION GUIDES
-  // ══════════════════════════════════════════════════════════════════════════════
-  @Get('explore/guide/:destination')
-  async getGuide(@Param('destination') dest: string) {
-    return this.assistantService.getDestinationGuide(dest);
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PUBLIC EXPLORATION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  @Get('explore/guide/:city')
+  @HttpCode(HttpStatus.OK)
+  async getDestinationGuide(@Param('city') city: string) {
+    return this.guideService.getDestinationGuide(city);
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════
-  // TRIP PHOTOS (PHASE 14)
-  // ══════════════════════════════════════════════════════════════════════════════
+  @Get('explore/hidden-gems/:city')
+  @HttpCode(HttpStatus.OK)
+  async discoverGems(@Param('city') city: string) {
+    return this.explorationService.discoverHiddenGems(city);
+  }
+
+  @Get('marketplace/offerings')
+  @HttpCode(HttpStatus.OK)
+  async getGlobalMarketplace(
+    @Query('category') category?: string,
+    @Query('city') city?: string,
+  ) {
+    return this.marketplaceService.getMarketplaceOfferings(category, city);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // INSIGHTS
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  @Get(':id/insights')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getTripInsights(
+    @Request() req: any,
+    @Param('id') tripId: string,
+  ) {
+    return this.insightsService.getTripSummaryStats(tripId);
+  }
+
+  @Post(':id/story/generate')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async generateStory(
+    @Request() req: any,
+    @Param('id') tripId: string,
+  ) {
+    return this.insightsService.generateTripStory(tripId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PHOTOS - ✅ SECURE: Safe user data
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   @Get(':id/photos')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   getTripPhotos(@Param('id') tripId: string, @Request() req: any) {
     const userId = req.user.id ?? req.user.sub;
     return this.tripsService.getTripPhotos(tripId, userId);
@@ -395,6 +449,7 @@ export class TripsController {
 
   @Post(':id/photos/:photoId/like')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   togglePhotoLike(
     @Param('id') _tripId: string,
     @Param('photoId') photoId: string,
@@ -406,12 +461,28 @@ export class TripsController {
 
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
   addTripPhoto(
     @Param('id') tripId: string,
     @Body('url') url: string,
     @Body('caption') caption: string,
     @Request() req: any,
   ) {
-    return this.tripsService.addTripPhoto(tripId, req.user.id ?? req.user.sub, url, caption);
+    return this.tripsService.addTripPhoto(
+      tripId,
+      req.user.id ?? req.user.sub,
+      url,
+      caption,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // DESTINATION GUIDES (Duplicate - moved to public)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  @Get('explore/guide/:destination')
+  @HttpCode(HttpStatus.OK)
+  async getGuide(@Param('destination') dest: string) {
+    return this.assistantService.getDestinationGuide(dest);
   }
 }
