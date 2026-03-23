@@ -33,7 +33,8 @@ export class TripsService {
     state: true,
     reputationScore: true,
     isVerified: true,
-    // ❌ NO email, password, tokens
+    travelPersonality: true,
+    // ❌ NO email, password, tokens, phone
   };
 
   constructor(
@@ -66,15 +67,7 @@ export class TripsService {
       },
       include: {
         admin: {
-          select: {
-            id: true,
-            username: true,
-            profileImage: true,
-            city: true,
-            state: true,
-            reputationScore: true,
-            isVerified: true,
-          } as any,
+          select: this.SAFE_USER_SELECT as any,
         },
       },
     });
@@ -115,15 +108,7 @@ export class TripsService {
       data,
       include: {
         admin: {
-          select: {
-            id: true,
-            username: true,
-            profileImage: true,
-            city: true,
-            state: true,
-            reputationScore: true,
-            isVerified: true,
-          } as any,
+          select: this.SAFE_USER_SELECT as any,
         },
       },
     });
@@ -156,7 +141,7 @@ export class TripsService {
     return { message: 'Trip deleted successfully' };
   }
 
-  // ═════════════════════════════════════════════════���═════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════════
   // LIST TRIPS - ✅ SECURE: No invite codes exposed publicly
   // ═══════════════════════════════════════════════════════════════════════════════
   async findAll(query: any, requestingUserId?: string) {
@@ -310,15 +295,7 @@ export class TripsService {
       where: { id },
       include: {
         admin: {
-          select: {
-            id: true,
-            username: true,
-            profileImage: true,
-            city: true,
-            state: true,
-            reputationScore: true,
-            isVerified: true,
-          } as any,
+          select: this.SAFE_USER_SELECT as any,
         },
         members: {
           include: {
@@ -409,7 +386,11 @@ export class TripsService {
       data: { tripId, requesterId: userId, message: dto.message },
       include: {
         requester: {
-          select: { id: true, username: true, profileImage: true },
+          select: {
+            id: true,
+            username: true,
+            profileImage: true,
+          },
         },
       },
     });
@@ -456,7 +437,7 @@ export class TripsService {
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════��═══════════════════════════════════════════════════════════
   // UPDATE JOIN REQUEST
   // ═══════════════════════════════════════════════════════════════════════════════
   async updateJoinRequest(
@@ -568,7 +549,7 @@ export class TripsService {
     return { message: 'Left trip successfully' };
   }
 
-  // ═══════════════════════════════════════════════════════��═══════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════════
   // UTILS FOR ITINERARY
   // ═══════════════════════════════════════════════════════════════════════════════
   async findById(id: string) {
@@ -648,7 +629,7 @@ export class TripsService {
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // SHARED PACKING CHECKLIST
-  // ════════════════════════════════════════════════════════════════════════════���══
+  // ═══════════════════════════════════════════════════════════════════════════════
   async getChecklist(tripId: string) {
     return this.prisma.checklistItem.findMany({
       where: { tripId },
@@ -691,7 +672,7 @@ export class TripsService {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════��═══════
   // TRIP PHOTOS - ✅ SECURE: Safe user data in photos
   // ═══════════════════════════════════════════════════════════════════════════════
   async addTripPhoto(

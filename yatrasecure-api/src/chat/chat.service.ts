@@ -75,7 +75,7 @@ export class ChatService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════��═══════════════════════
   // GET MESSAGES - ✅ SECURE: Safe data only
   // ═══════════════════════════════════════════════════════════════════════════════
   /**
@@ -140,7 +140,7 @@ export class ChatService {
     userId: string,
     username: string,
     content: string,
-  ): Promise<any> {
+  ): Promise<SafeMessage & { message?: string }> {
     // Validate inputs
     if (!tripId || !userId || !content) {
       throw new BadRequestException('Invalid message data');
@@ -176,8 +176,8 @@ export class ChatService {
       const message = new this.messageModel(messageData);
       const saved = await message.save();
 
-      // ✅ Format response - convert to plain object to access createdAt safely
-      const savedObj = saved.toObject ? saved.toObject() : saved;
+      // ✅ Convert to plain object and handle null
+      const savedObj = saved.toObject ? saved.toObject() : (saved as any);
 
       return {
         id: saved._id.toString(),
@@ -187,7 +187,7 @@ export class ChatService {
         },
         content: saved.content,
         type: saved.type,
-        sentAt: savedObj.createdAt || new Date(),
+        sentAt: savedObj?.createdAt || new Date(),
         message: 'Message sent successfully',
       };
     } catch (error: any) {
@@ -246,8 +246,8 @@ export class ChatService {
       const message = new this.messageModel(messageData);
       const saved = await message.save();
 
-      // ✅ Convert to plain object to safely access fields
-      const savedObj = saved.toObject ? saved.toObject() : saved;
+      // ✅ Convert to plain object and handle null
+      const savedObj = saved.toObject ? saved.toObject() : (saved as any);
 
       return {
         id: saved._id.toString(),
@@ -257,7 +257,7 @@ export class ChatService {
         },
         content: saved.content,
         type: saved.type,
-        sentAt: savedObj.createdAt || new Date(),
+        sentAt: savedObj?.createdAt || new Date(),
       };
     } catch (error: any) {
       this.logger.error(
@@ -343,7 +343,7 @@ export class ChatService {
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // SEARCH MESSAGES - ✅ SECURE: Full text search with membership check
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════��═════════
   /**
    * Search messages in a trip by keyword
    * ✅ SECURE: Full text search, membership verified
@@ -448,8 +448,8 @@ export class ChatService {
       }
 
       // ✅ Check if message is older than 1 hour
-      const messageObj = message.toObject ? message.toObject() : message;
-      const createdTime = messageObj.createdAt || message.createdAt;
+      const messageObj = message.toObject ? message.toObject() : (message as any);
+      const createdTime = messageObj?.createdAt || message.createdAt;
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
       if (createdTime < oneHourAgo) {
@@ -524,8 +524,8 @@ export class ChatService {
       }
 
       // ✅ Check if message is older than 15 minutes
-      const messageObj = message.toObject ? message.toObject() : message;
-      const createdTime = messageObj.createdAt || message.createdAt;
+      const messageObj = message.toObject ? message.toObject() : (message as any);
+      const createdTime = messageObj?.createdAt || message.createdAt;
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
       if (createdTime < fifteenMinutesAgo) {
@@ -544,7 +544,11 @@ export class ChatService {
         { new: true },
       );
 
-      const updatedObj = updated.toObject ? updated.toObject() : updated;
+      if (!updated) {
+        throw new NotFoundException('Failed to update message');
+      }
+
+      const updatedObj = updated.toObject ? updated.toObject() : (updated as any);
 
       return {
         id: updated._id.toString(),
@@ -554,7 +558,7 @@ export class ChatService {
         },
         content: updated.content,
         type: updated.type,
-        sentAt: updatedObj.createdAt || new Date(),
+        sentAt: updatedObj?.createdAt || new Date(),
       };
     } catch (error: any) {
       if (

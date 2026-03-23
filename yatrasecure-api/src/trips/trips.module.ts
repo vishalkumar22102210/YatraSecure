@@ -11,21 +11,32 @@ import { MarketplaceService } from './marketplace.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AssistantService } from './assistant.service';
 import { MatchmakingModule } from '../common/matchmaking/matchmaking.module';
-import { CommonModule } from 'src/common/common.module';
+import { CommonModule } from '../common/common.module'; // ✅ IMPORT CommonModule
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, MatchmakingModule, CommonModule],
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    MatchmakingModule,
+    CommonModule, // ✅ ADD CommonModule
+  ],
   controllers: [TripsController],
   providers: [
-    TripsService, 
-    ItineraryService, 
-    AssistantService, 
-    ChatAIAssistantService, 
-    InsightsService, 
+    TripsService,
+    ItineraryService,
+    AssistantService,
+    ChatAIAssistantService,
+    InsightsService,
     DestinationGuideService,
     ExplorationService,
-    MarketplaceService
+    MarketplaceService,
   ],
-  exports: [TripsService, InsightsService, DestinationGuideService, ExplorationService, MarketplaceService],
+  exports: [
+    TripsService,
+    InsightsService,
+    DestinationGuideService,
+    ExplorationService,
+    MarketplaceService,
+  ],
 })
 export class TripsModule {}
