@@ -8,44 +8,26 @@ const SIGNUP_PHOTO = 'https://images.unsplash.com/photo-1501555088652-021faa106b
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19.6 10.23c0-.82-.15-1.42-.4-2.05H10v3.72h5.5c-.15.96-.74 2.31-2.04 3.22v2.45h3.16c1.89-1.73 2.98-4.3 2.98-7.34z" fill="#4285F4"/>
+      <path d="M13.46 15.13c-.83.63-1.96 1.04-3.46 1.04-2.64 0-4.84-1.74-5.64-4.05H2.84v2.52C3.9 17.08 6.79 19 10 19c1.74 0 3.37-.29 4.6-.84l-1.14-2.03z" fill="#34A853"/>
+      <path d="M10 3.88c1.88 0 2.87.96 3.54 1.78l2.58-2.58C13.37.98 11.74.2 10 .2 6.79.2 3.9 2.12 2.84 4.78h2.52c.8-2.31 3-4.05 5.64-4.05z" fill="#FBBC05"/>
+      <path d="M10 10c-.5 0-.96-.19-1.32-.48l-2.5 1.98C6.3 12.66 7.95 14 10 14c1.5 0 2.63-.41 3.46-1.04l2.04-3.02c.35-.37.54-.87.54-1.46 0-.5-.19-.99-.48-1.35L10 10z" fill="#EA4335"/>
     </svg>
   );
 }
 
 function PasswordStrengthBar({ password }: { password: string }) {
-  const checks = [
-    { label: '8+ chars',       ok: password.length >= 8 },
-    { label: 'Uppercase',      ok: /[A-Z]/.test(password) },
-    { label: 'Lowercase',      ok: /[a-z]/.test(password) },
-    { label: 'Number',         ok: /[0-9]/.test(password) },
-    { label: 'Special (!@#)', ok: /[^A-Za-z0-9]/.test(password) },
-  ];
-  const score = checks.filter(c => c.ok).length;
-  const colors = ['', '#EF4444', '#F59E0B', '#EAB308', '#38BDF8', '#22C55E'];
-  const labels = ['', 'Very Weak', 'Weak', 'Average', 'Strong', 'Very Strong'];
-
-  if (!password) return null;
+  const strength = !password ? 0 : password.length < 8 ? 1 : /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[@$!%*?&]/.test(password) ? 3 : 2;
+  const colors = ['#888', '#EF4444', '#F59E0B', '#10B981'];
+  const labels = ['', 'Weak', 'Fair', 'Strong'];
   return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-        {[1,2,3,4,5].map(i => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= score ? colors[score] : 'rgba(255,255,255,0.1)', transition: 'background 0.3s' }} />
-        ))}
+    <>
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        {[0, 1, 2].map(i => <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < strength ? colors[strength] : '#333' }} />)}
       </div>
-      <p style={{ fontSize: 11, fontWeight: 700, color: score > 0 ? colors[score] : 'var(--text3)', margin: '0 0 4px' }}>{labels[score]}</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px' }}>
-        {checks.map(({ label, ok }) => (
-          <span key={label} style={{ fontSize: 11, color: ok ? '#22c55e' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 3 }}>
-            <CheckCircle style={{ width: 11, height: 11 }} /> {label}
-          </span>
-        ))}
-      </div>
-    </div>
+      {strength > 0 && <p style={{ fontSize: 12, color: colors[strength], marginTop: 6, fontWeight: 500 }}>{labels[strength]}</p>}
+    </>
   );
 }
 
@@ -87,7 +69,7 @@ export default function SignupPage() {
     if (Object.values(errs).some(Boolean)) return;
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      const res = await fetch(`${API_BASE_URL}/auth/signup`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ username: username.trim(), email: email.trim(), password }),
@@ -131,15 +113,12 @@ export default function SignupPage() {
 
         <div style={{ position: 'relative', zIndex: 4, padding: '32px 40px' }}>
           <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: 'var(--cta-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(56,189,248,0.35)' }}>
-              <MapPin style={{ width: 18, height: 18, color: 'white' }} />
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 700, color: 'white', fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.03em' }}>YatraSecure</span>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🗺️</div>
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'white', fontFamily: "'Space Grotesk', sans-serif" }}>YatraSecure</span>
           </Link>
         </div>
 
-        {/* Benefits list */}
-        <div style={{ position: 'relative', zIndex: 4, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 48px 56px' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', padding: '32px 40px', position: 'relative', zIndex: 3 }}>
           <div style={{ width: 48, height: 3, background: 'var(--accent)', borderRadius: 2, marginBottom: 20 }} />
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, color: 'white', lineHeight: 1.3, marginBottom: 28, letterSpacing: '-0.03em' }}>
             Join India&apos;s safest<br />travel community
@@ -158,36 +137,25 @@ export default function SignupPage() {
             </div>
           ))}
         </div>
+
+        {[
+          { emoji: '✈️', size: 28, top: '10%', left: '10%', dur: '20s', delay: '-5s',  rot: '25deg'  },
+          { emoji: '🏔️', size: 32, top: '25%', left: '75%', dur: '15s', delay: '-8s',  rot: '-15deg' },
+          { emoji: '🎒', size: 24, top: '60%', left: '5%', dur: '25s', delay: '-12s', rot: '35deg'  },
+          { emoji: '🌴', size: 28, top: '65%', left: '80%', dur: '18s', delay: '-6s',  rot: '-8deg'  },
+          { emoji: '🔭', size: 28, top: '50%', left: '85%', dur: '18s', delay: '-9s',  rot: '-10deg' },
+          { emoji: '🏞️', size: 36, top: '70%', left: '60%', dur: '28s', delay: '-14s', rot: '12deg'  },
+          { emoji: '🛕', size: 32, top: '80%', left: '20%', dur: '22s', delay: '-7s',  rot: '-22deg' },
+          { emoji: '🌊', size: 38, top: '15%', left: '45%', dur: '26s', delay: '-3s',  rot: '8deg'   },
+        ].map((e, i) => (
+          <div key={i} style={{ position: 'absolute', fontSize: e.size, top: e.top, left: e.left, opacity: 0.4, animation: `float ${e.dur} infinite linear`, animationDelay: e.delay, transform: `rotate(${e.rot})` }}>
+            {e.emoji}
+          </div>
+        ))}
       </div>
 
       {/* ══ RIGHT — FORM PANEL ══════════════════════════════════════════════ */}
-      <div style={{ flex: 1, background: 'var(--bg)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '48px 40px', overflowY: 'auto', position: 'relative' }}>
-
-        {/* Animated floating travel icons background */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
-          {[
-            { emoji: '✈️', size: 30, top: '5%',  left: '70%', dur: '20s', delay: '0s',   rot: '-15deg' },
-            { emoji: '🌋', size: 34, top: '25%', left: '8%',  dur: '24s', delay: '-5s',  rot: '20deg'  },
-            { emoji: '🔭', size: 28, top: '50%', left: '85%', dur: '18s', delay: '-9s',  rot: '-10deg' },
-            { emoji: '🏞️', size: 36, top: '70%', left: '60%', dur: '28s', delay: '-14s', rot: '12deg'  },
-            { emoji: '🛕', size: 32, top: '80%', left: '20%', dur: '22s', delay: '-7s',  rot: '-22deg' },
-            { emoji: '🌊', size: 38, top: '15%', left: '45%', dur: '26s', delay: '-3s',  rot: '8deg'   },
-            { emoji: '⚓', size: 26, top: '60%', left: '30%', dur: '21s', delay: '-11s', rot: '-18deg' },
-            { emoji: '🍍', size: 24, top: '38%', left: '92%', dur: '17s', delay: '-6s',  rot: '25deg'  },
-          ].map((item, i) => (
-            <div key={i} style={{
-              position: 'absolute', top: item.top, left: item.left,
-              fontSize: item.size, opacity: 0.07,
-              animation: `floatTravel ${item.dur} ease-in-out infinite`,
-              animationDelay: item.delay,
-              transform: `rotate(${item.rot})`,
-              filter: 'blur(0.5px)',
-            }}>
-              {item.emoji}
-            </div>
-          ))}
-        </div>
-
+      <div style={{ flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 40px', background: 'var(--bg)' }}>
         <div style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}>
 
           <div style={{ marginBottom: 28 }}>
@@ -208,28 +176,32 @@ export default function SignupPage() {
               const val = key === 'username' ? username : key === 'email' ? email : password;
               return (
                 <div key={key} style={{ animation: mounted ? `slideInRight 0.5s cubic-bezier(0.25,0.46,0.45,0.94) ${i * 80 + 80}ms both` : 'none' }}>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 7 }}>{label}</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
                   <div style={{ position: 'relative' }}>
-                    <Icon style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 17, height: 17, color: fe[key] ? '#EF4444' : 'var(--text3)', pointerEvents: 'none' }} />
+                    <Icon style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, color: 'var(--text3)', pointerEvents: 'none' }} />
                     <input
-                      type={isPassword && showPw ? 'text' : type}
-                      value={val}
-                      onChange={e => change(key, e.target.value)}
-                      onBlur={e => blur(key, e.target.value)}
+                      type={isPassword && !showPw ? 'password' : 'text'}
                       placeholder={placeholder}
-                      className={`input-field${fe[key] ? ' error' : ''}`}
-                      style={{ paddingLeft: 44, ...(isPassword ? { paddingRight: 44 } : {}) }}
+                      value={val}
+                      onBlur={() => blur(key, val)}
+                      onChange={(e) => change(key, e.target.value)}
                       autoComplete={autoComplete}
-                      required
+                      style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: 10, border: `1.5px solid ${fe[key] ? '#EF4444' : 'var(--border)'}`, background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, fontFamily: "'Inter', sans-serif", transition: 'all 0.2s', outline: 'none' }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = fe[key] ? '#EF4444' : 'var(--accent)')}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = fe[key] ? '#EF4444' : 'var(--border)')}
                     />
                     {isPassword && (
-                      <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex', padding: 0 }}>
-                        {showPw ? <EyeOff style={{ width: 17, height: 17 }} /> : <Eye style={{ width: 17, height: 17 }} />}
+                      <button
+                        type="button"
+                        onClick={() => setShowPw(!showPw)}
+                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: 0 }}
+                      >
+                        {showPw ? <EyeOff style={{ width: 18, height: 18 }} /> : <Eye style={{ width: 18, height: 18 }} />}
                       </button>
                     )}
                   </div>
-                  {fe[key] && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 5 }}>{fe[key]}</p>}
-                  {isPassword && <PasswordStrengthBar password={password} />}
+                  {fe[key] && <p style={{ fontSize: 12, color: '#EF4444', marginTop: 6, fontWeight: 500 }}>{fe[key]}</p>}
+                  {key === 'password' && <PasswordStrengthBar password={val} />}
                 </div>
               );
             })}
@@ -254,11 +226,12 @@ export default function SignupPage() {
           </div>
 
           <button type="button"
-            style={{ width: '100%', height: 50, borderRadius: 12, border: '1.5px solid var(--border2)', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 15, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'rgba(56,189,248,0.06)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+            style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 14, fontWeight: 600, transition: 'all 0.2s' }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
           >
-            <GoogleIcon /> Sign up with Google
+            <GoogleIcon />
+            Sign up with Google
           </button>
 
           <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text2)', marginTop: 28 }}>
@@ -271,6 +244,7 @@ export default function SignupPage() {
       <style>{`
         @keyframes slideInRight { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
         @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+        @keyframes float { from { transform: translateY(0px) rotate(var(--rot, 0deg)); } to { transform: translateY(-20px) rotate(var(--rot, 0deg)); } }
       `}</style>
     </div>
   );

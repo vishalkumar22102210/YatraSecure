@@ -6,14 +6,14 @@ import { AppModule } from './app.module';
 import { LoggerService } from './common/logger/logger.service';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import * as mongoose from 'mongoose';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.setGlobalPrefix('api');
 
+  // ✅ Parse cookies (required for httpOnly cookie auth)
   app.use(cookieParser());
 
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
@@ -53,21 +53,10 @@ async function bootstrap() {
     `Application is running on: http://localhost:${port}/api`,
     'Bootstrap',
   );
-
-  // Gracefully handle MongoDB connection errors so they don't crash the server
-  const conn = mongoose.connection;
-  conn.on('error', (err) => {
-    console.warn(`[Mongoose] MongoDB connection error (non-fatal): ${err.message}`);
-  });
 }
 
-// Prevent unhandled promise rejections (e.g. from MongoDB) from crashing the process
+// Prevent unhandled promise rejections from crashing the process
 process.on('unhandledRejection', (reason: any) => {
-  const msg = reason?.message || String(reason);
-  if (msg.includes('ECONNREFUSED') && msg.includes('27017')) {
-    console.warn('[MongoDB] Connection refused — MongoDB is not running. Chat features will be unavailable.');
-    return; // suppress this specific crash
-  }
   console.error('[UnhandledRejection]', reason);
 });
 

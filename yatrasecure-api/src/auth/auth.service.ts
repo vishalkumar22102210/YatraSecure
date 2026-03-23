@@ -116,13 +116,16 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('Email or username already exists');
+      if (existingUser.email === email) {
+        throw new ConflictException('Email already registered');
+      }
+      throw new ConflictException('Username already taken');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedVerificationToken = await bcrypt.hash(verificationToken, 10);
-    const verificationExpiry = new Date(Date.now() + 86400000);
+    const verificationExpiry = new Date(Date.now() + 86400000); // 24 hours
 
     const user = await this.prisma.user.create({
       data: {
@@ -135,12 +138,14 @@ export class AuthService {
       },
     });
 
+    // Send welcome email (non-blocking)
     try {
       await this.emailService.sendWelcomeEmail(user.email, user.username);
     } catch (error) {
       console.error('Failed to send welcome email:', error);
     }
 
+    // Send verification email (non-blocking)
     try {
       await this.emailService.sendVerificationEmail(
         user.email,
@@ -159,10 +164,12 @@ export class AuthService {
 
     const { password: _, ...userWithoutPassword } = user;
 
-    // ✅ no tokens in JSON
+    // ✅ FIXED: Return tokens in response body + expires_in
     return {
-      user: userWithoutPassword,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
       expires_in: tokens.expires_in,
+      user: userWithoutPassword,
     };
   }
 
@@ -185,10 +192,12 @@ export class AuthService {
 
     const { password: _, ...userWithoutPassword } = user;
 
-    // ✅ no tokens in JSON
+    // ✅ FIXED: Return tokens in response body + expires_in
     return {
-      user: userWithoutPassword,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
       expires_in: tokens.expires_in,
+      user: userWithoutPassword,
     };
   }
 
@@ -245,7 +254,12 @@ export class AuthService {
       // update cookies
       this.setAuthCookies(res, tokens);
 
-      return { expires_in: tokens.expires_in };
+      // ✅ FIXED: Return tokens in response body
+      return {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expires_in,
+      };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -274,7 +288,7 @@ export class AuthService {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = await bcrypt.hash(resetToken, 10);
-    const resetTokenExpiry = new Date(Date.now() + 3600000);
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -403,7 +417,7 @@ export class AuthService {
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedVerificationToken = await bcrypt.hash(verificationToken, 10);
-    const verificationExpiry = new Date(Date.now() + 86400000);
+    const verificationExpiry = new Date(Date.now() + 86400000); // 24 hours
 
     await this.prisma.user.update({
       where: { id: user.id },
