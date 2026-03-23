@@ -54,15 +54,15 @@ export default function LoginPage() {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // ✅ SECURE: accept httpOnly cookie from server
         body: JSON.stringify({ email: email.trim(), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : data.message || 'Invalid credentials');
       const accessToken  = data.access_token;
-      const refreshToken = data.refresh_token;
       const expiresIn    = data.expires_in;
       if (!accessToken) throw new Error('Login failed — no token received');
-      setTokens(accessToken, refreshToken, Number(expiresIn));
+      setTokens(accessToken, Number(expiresIn));
       localStorage.setItem('user', JSON.stringify(data.user ?? {}));
       window.location.href = '/dashboard';
     } catch (err: any) {

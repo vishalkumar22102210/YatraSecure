@@ -7,6 +7,8 @@ import {
   User, LogOut, Menu, X, Settings, Plus, Map, ShoppingBag,
   PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
+import NotificationDropdown from "@/components/NotificationDropdown";
+import CurrentLocation from "@/components/CurrentLocation";
 
 // Nav items, "Wallet" has been removed to simplify user flow
 const navItems = [
@@ -24,7 +26,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser]           = useState<any>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
-  const [unread, setUnread]       = useState(0);
   const [dropOpen, setDrop]       = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -170,17 +171,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {label}
                       </span>
                     )}
-                    {!desktopCollapsed && label === "Alerts" && unread > 0 && (
-                      <div style={{
-                        marginLeft: "auto", minWidth: 18, height: 18,
-                        borderRadius: 999, background: "var(--accent)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, fontWeight: 700, color: "white", padding: "0 5px",
-                        boxShadow: "0 0 10px rgba(56,189,248,0.4)"
-                      }}>
-                        {unread > 9 ? "9+" : unread}
-                      </div>
-                    )}
                   </div>
                 </Link>
               );
@@ -211,7 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User Profile Snippet (Bottom) */}
         {user && (
-          <div style={{ padding: desktopCollapsed ? "16px 8px" : "16px", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)" }}>
+          <div style={{ padding: desktopCollapsed ? "16px 8px 32px" : "16px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px", borderRadius: 12, transition: "background 0.2s", justifyContent: desktopCollapsed ? "center" : "flex-start" }} className="hover:bg-white/5 cursor-pointer">
               <div style={{
                 width: 32, height: 32, borderRadius: 10, flexShrink: 0,
@@ -251,9 +241,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div style={{
             flex: 1, display: "flex", flexDirection: "column",
             transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            marginLeft: typeof window !== 'undefined' && window.innerWidth >= 1024 ? sidebarWidth : 0,
             background: 'var(--dashboard-bg)', // new color system
-          }} className={`lg:ml-[${sidebarWidth}px]`}>
+          }} className={desktopCollapsed ? "lg:ml-[80px]" : "lg:ml-[260px]"}>
             {/* ── TOP NAV BAR ── */}
             <header style={{
               position: "sticky", top: 0, zIndex: 30,
@@ -290,33 +279,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
               {/* Right — Actions */}
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <Link href="/notifications" style={{ textDecoration: "none" }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer", position: "relative", transition: "all 0.2s",
-                    boxShadow: '0 0 12px var(--dashboard-accent)',
-                    animation: 'lift 0.5s',
-                  }}
-                  className="hover:bg-white/10 hover:border-white/20">
-                        <Bell style={{ width: 16, height: 16, color: "#cbd5e1" }} />
-                        {unread > 0 && (
-                        <div style={{
-                            position: "absolute", top: -2, right: -2,
-                            width: 14, height: 14, borderRadius: "50%",
-                            background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 9, fontWeight: 800, color: "white",
-                            boxShadow: "0 0 10px rgba(56,189,248,0.4)"
-                        }}>
-                            {unread}
-                        </div>
-                        )}
-                    </div>
-                    </Link>
+                <CurrentLocation />
+                <NotificationDropdown />
 
-                    {/* Profile Dropdown */}
-                    <div ref={dropRef} style={{ position: "relative" }}>
+                {/* Profile Dropdown */}
+                <div ref={dropRef} style={{ position: "relative" }}>
                     <div
                         onClick={() => setDrop(!dropOpen)}
                         style={{

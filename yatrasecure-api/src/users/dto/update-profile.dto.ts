@@ -14,6 +14,26 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(50)
+  gender?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  hometown?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  professionalStatus?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  interests?: string[];
+
+  @IsOptional()
+  @IsString()
   @MaxLength(100)
   city?: string;
 
@@ -34,4 +54,8 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   travelPersonality?: string;
+
+  @IsOptional()
+  @IsArray()
+  emergencyContacts?: any[];
 }

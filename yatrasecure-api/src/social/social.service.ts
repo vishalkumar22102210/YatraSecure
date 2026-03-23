@@ -14,7 +14,7 @@ export class SocialService {
       throw new BadRequestException('You cannot follow yourself');
     }
 
-    const targetUser = await this.prisma.user.findUnique({ where: { id: followingId } });
+    const targetUser = await this.prisma.user.findUnique({ where: { id: followingId }, select: { id: true } });
     if (!targetUser) throw new NotFoundException('User to follow not found');
 
     const followObj = await this.prisma.follow.upsert({
@@ -27,7 +27,7 @@ export class SocialService {
 
     // Auto-update reputation
     await this.updateReputation(followingId);
-    return followObj;
+    return { message: 'Followed successfully' };
   }
 
   async unfollowUser(followerId: string, followingId: string) {
@@ -108,9 +108,10 @@ export class SocialService {
     // Future: Add AI photo verification multiplier
     const score = (followersCount * 10) + (tripsCount * 20);
 
-    return this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id: userId },
       data: { reputationScore: Math.min(score, 1000) }, // Cap at 1000
+      select: { id: true, reputationScore: true },
     });
   }
 

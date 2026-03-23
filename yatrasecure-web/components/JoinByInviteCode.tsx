@@ -76,6 +76,7 @@ export default function JoinByInviteCode() {
             width: 14, height: 14, color: '#475569', pointerEvents: 'none',
           }} />
           <input
+            suppressHydrationWarning
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -94,6 +95,7 @@ export default function JoinByInviteCode() {
           />
         </div>
         <button
+          suppressHydrationWarning
           onClick={handleJoin}
           disabled={loading || !code.trim()}
           style={{

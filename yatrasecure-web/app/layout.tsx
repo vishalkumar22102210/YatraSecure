@@ -25,7 +25,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased" style={{ backgroundColor: "var(--bg)" }}>
+      <body className="antialiased" style={{ backgroundColor: "var(--bg)" }} suppressHydrationWarning>
         <TravelThemeProvider>{children}</TravelThemeProvider>
         <Toaster
           position="top-right"

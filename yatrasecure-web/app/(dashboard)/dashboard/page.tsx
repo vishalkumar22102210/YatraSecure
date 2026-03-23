@@ -22,7 +22,10 @@ function formatDate(d: string) {
 // ─── TRIP CARD ─────────────────────────────────────────────
 function TripCard({ trip }: { trip: any }) {
   const router = useRouter();
-  const daysLeft = Math.ceil((new Date(trip.startDate).getTime() - Date.now()) / 86400000);
+  const [daysLeft, setDaysLeft] = useState(0);
+  useEffect(() => {
+    setDaysLeft(Math.ceil((new Date(trip.startDate).getTime() - Date.now()) / 86400000));
+  }, [trip.startDate]);
   return (
     <div
       onClick={() => router.push(`/trips/${trip.id}`)}
@@ -145,7 +148,8 @@ function SafetyNearbySection({ onDataReady }: { onDataReady: (data: { locationNa
   const [locationName, setLocationName] = useState("Detecting location...");
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyData>({ hospitals: [], policeStations: [], transitStations: [] });
   const [loading, setLoading] = useState(true);
-  const [safetyScore] = useState(Math.floor(Math.random() * 21) + 70);
+  const [safetyScore, setSafetyScore] = useState(0);
+  useEffect(() => { setSafetyScore(Math.floor(Math.random() * 21) + 70); }, []);
   const dataReported = useRef(false);
 
   const reportData = useCallback((locName: string, places: NearbyData) => {
@@ -277,15 +281,54 @@ function SafetyNearbySection({ onDataReady }: { onDataReady: (data: { locationNa
 }
 
 // ─── SOS SECTION ───────────────────────────────────────────
-function SOSSection({ userName, safetyData }: { userName: string; safetyData: any; }) {
+function SOSSection({ userName, safetyData, emergencyContacts = [], onUpdateContacts }: { userName: string; safetyData: any; emergencyContacts?: any[]; onUpdateContacts?: (c: any[]) => void; }) {
   const [contacts, setContacts] = useState<{ name: string; phone: string }[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [sending, setSending] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [loadingAdd, setLoadingAdd] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('sos_contacts');
-    if (stored) { try { setContacts(JSON.parse(stored)); } catch {} }
-  }, []);
+    // If we have contacts from backend, use them, otherwise check local storage (legacy)
+    if (emergencyContacts && emergencyContacts.length > 0) {
+      setContacts(emergencyContacts);
+    } else {
+      const stored = localStorage.getItem('sos_contacts');
+      if (stored) { try { setContacts(JSON.parse(stored)); } catch {} }
+    }
+  }, [emergencyContacts]);
+
+  async function saveContacts(updated: any[]) {
+    try {
+      const res = await fetchWithAuth('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ emergencyContacts: updated })
+      });
+      if (!res.ok) throw new Error();
+      setContacts(updated);
+      if (onUpdateContacts) onUpdateContacts(updated);
+      toast.success('Emergency contacts updated');
+    } catch {
+      toast.error('Failed to save to cloud. Saved locally.');
+      setContacts(updated);
+      localStorage.setItem('sos_contacts', JSON.stringify(updated));
+    }
+  }
+
+  async function handleAdd() {
+    if (!newName.trim() || !newPhone.trim()) { toast.error("Enter name and number"); return; }
+    setLoadingAdd(true);
+    await saveContacts([...contacts, { name: newName.trim(), phone: newPhone.trim() }]);
+    setNewName(''); setNewPhone(''); setShowAdd(false);
+    setLoadingAdd(false);
+  }
+
+  async function handleRemove(idx: number) {
+    if(!confirm("Remove this contact?")) return;
+    const updated = contacts.filter((_, i) => i !== idx);
+    await saveContacts(updated);
+  }
 
   function sendSOS() {
     if (contacts.length === 0) { alert('Please add at least one emergency contact.'); return; }
@@ -323,6 +366,7 @@ function SOSSection({ userName, safetyData }: { userName: string; safetyData: an
           </div>
         </div>
         <button
+          suppressHydrationWarning
           onClick={() => setShowAdd(!showAdd)}
           style={{
             padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700,
@@ -337,14 +381,35 @@ function SOSSection({ userName, safetyData }: { userName: string; safetyData: an
 
       {showAdd && (
         <div style={{ padding: 16, borderRadius: 12, background: "rgba(0,0,0,0.2)", marginBottom: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
-           <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>Add emergency contacts (WhatsApp).</p>
-           {/* simplified for display, assuming users add via complete form elsewhere or expanded later */}
-           <button style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px dashed rgba(255,255,255,0.2)'}}>+ Add New Contact</button>
+           <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>Add emergency contacts (WhatsApp format).</p>
+           
+           {contacts.length > 0 && (
+             <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+               {contacts.map((c, i) => (
+                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: 8 }}>
+                   <div>
+                     <p style={{ fontSize: 13, color: 'white', margin: 0, fontWeight: 600 }}>{c.name}</p>
+                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>+91 {c.phone}</p>
+                   </div>
+                   <button onClick={() => handleRemove(i)} style={{ color: '#ef4444', fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}>Remove</button>
+                 </div>
+               ))}
+             </div>
+           )}
+
+           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+             <input type="text" placeholder="Name" value={newName} onChange={e=>setNewName(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: 13 }} />
+             <input type="tel" placeholder="10-digit Phone" value={newPhone} onChange={e=>setNewPhone(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: 13 }} />
+           </div>
+           <button onClick={handleAdd} disabled={loadingAdd || !newName || !newPhone} style={{ width: '100%', padding: '10px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+             {loadingAdd ? 'Saving...' : '+ Save Contact'}
+           </button>
         </div>
       )}
 
       {/* Action Button */}
       <button
+        suppressHydrationWarning
         onClick={sendSOS}
         disabled={sending || contacts.length === 0}
         style={{
@@ -375,27 +440,38 @@ export default function DashboardPage() {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [safetyData, setSafetyData] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Time-based gradient for greeting banner
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const gradient = hour < 12
-    ? "linear-gradient(90deg, #38bdf8 0%, #a7f3d0 100%)"
-    : hour < 17
-      ? "linear-gradient(90deg, #fbbf24 0%, #f97316 100%)"
-      : "linear-gradient(90deg, #6366f1 0%, #0ea5e9 100%)";
+  // ✅ HYDRATION-SAFE: Time-based values computed client-side only
+  const [greeting, setGreeting] = useState("");
+  const [gradient, setGradient] = useState("linear-gradient(90deg, #6366f1 0%, #0ea5e9 100%)");
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    const hour = new Date().getHours();
+    setGreeting(hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+    const grad = hour < 12
+      ? "linear-gradient(90deg, #38bdf8 0%, #a7f3d0 100%)"
+      : hour < 17
+        ? "linear-gradient(90deg, #fbbf24 0%, #f97316 100%)"
+        : "linear-gradient(90deg, #6366f1 0%, #0ea5e9 100%)";
+    setGradient(grad);
+    setNow(new Date());
+
+    // Set dashboard color system
+    document.documentElement.style.setProperty('--dashboard-bg', '#0f172a');
+    document.documentElement.style.setProperty('--dashboard-gradient-start', grad.split(',')[0].split('(')[1]);
+    document.documentElement.style.setProperty('--dashboard-gradient-end', grad.split(',')[1]);
+    document.documentElement.style.setProperty('--dashboard-accent', hour < 12 ? '#38bdf8' : hour < 17 ? '#fbbf24' : '#6366f1');
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (!stored) { router.push("/login"); return; }
     setUser(JSON.parse(stored));
     fetchTrips();
-    // Set dashboard color system
-    document.documentElement.style.setProperty('--dashboard-bg', '#0f172a');
-    document.documentElement.style.setProperty('--dashboard-gradient-start', gradient.split(',')[0].split('(')[1]);
-    document.documentElement.style.setProperty('--dashboard-gradient-end', gradient.split(',')[1]);
-    document.documentElement.style.setProperty('--dashboard-accent', hour < 12 ? '#38bdf8' : hour < 17 ? '#fbbf24' : '#6366f1');
-  }, [router, hour, gradient]);
+  }, [router]);
 
   async function fetchTrips() {
     try {
@@ -411,16 +487,9 @@ export default function DashboardPage() {
 
   const handleSafetyDataReady = useCallback((data: any) => setSafetyData(data), []);
 
-  const upcoming = trips.filter(t => new Date(t.startDate) > new Date()).slice(0, 4);
-  const completed = trips.filter(t => new Date(t.startDate) <= new Date()).length;
-
-  // Dynamic Premium Stats
-  const statsData = [
-    { label: "Completed Trips", value: completed, icon: CheckCircle, color: "var(--dashboard-accent)", bg: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))", border: "rgba(16,185,129,0.2)" },
-    { label: "Upcoming Trips", value: upcoming.length, icon: Navigation, color: "#38bdf8", bg: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(56,189,248,0.05))", border: "rgba(56,189,248,0.2)" },
-    { label: "Cities Explored", value: Math.max(0, trips.length * 2 - 1), icon: MapPin, color: "#f97316", bg: "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(249,115,22,0.05))", border: "rgba(249,115,22,0.2)" },
-    { label: "Reputation Score", value: "94/100", icon: Star, color: "#fbbf24", bg: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))", border: "rgba(251,191,36,0.2)" },
-  ];
+  // ✅ HYDRATION-SAFE: Use client-side `now` to avoid SSR/client date mismatch
+  const currentTime = now || new Date(0);
+  const upcoming = mounted ? trips.filter(t => new Date(t.startDate) > currentTime).slice(0, 4) : [];
 
   return (
     <div className="anim-in mx-auto w-full max-w-7xl" style={{ display: 'flex', flexDirection: 'column', gap: '32px', position: 'relative' }}>
@@ -460,35 +529,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── STATS ROW (KPIs) ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
-        {statsData.map(({ label, value, icon: Icon, color, bg, border }) => (
-          <div key={label} style={{
-            padding: "24px", borderRadius: 20,
-            background: "linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-            display: "flex", flexDirection: "column", gap: 20,
-            position: "relative", overflow: "hidden"
-          }} className="group hover:-translate-y-1 transition-transform duration-300">
-            {/* Soft background glow */}
-            <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, background: color, filter: 'blur(50px)', opacity: 0.15, borderRadius: '50%' }} />
-            
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: bg, border: `1px solid ${border}`,
-                display: "flex", alignItems: "center", justifyContent: "center"
-              }}>
-                <Icon style={{ width: 20, height: 20, color }} />
-              </div>
-            </div>
-            <div>
-              <p style={{ fontSize: 32, fontWeight: 900, color: "white", margin: "0 0 4px 0", lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</p>
-              <p style={{ fontSize: 13, color: "#94a3b8", fontWeight: 600, margin: 0 }}>{label}</p>
-            </div>
-          </div>
-        ))}
+      {/* ── ROW 1: EMERGENCY & REGIONAL SAFETY (Promoted to top) ── */}
+      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="xl:grid-cols-[1fr_1fr]">
+        <SOSSection 
+          userName={user?.username || user?.firstName || 'User'} 
+          safetyData={safetyData} 
+          emergencyContacts={user?.emergencyContacts}
+          onUpdateContacts={(c) => {
+            const updatedUser = { ...user, emergencyContacts: c };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }}
+        />
+        <SafetyNearbySection onDataReady={handleSafetyDataReady} />
       </div>
 
       {/* ── ROW 2: TRIPS & ACTIONS ── */}
@@ -572,12 +625,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── ROW 3: TRAVELERS, SAFETY & SOS ── */}
-      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="xl:grid-cols-[1fr_1fr_360px]">
+      {/* ── ROW 3: TRAVELERS, INVITE ── */}
+      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="xl:grid-cols-[1fr_360px]">
         <SuggestedTravelers />
-        <SafetyNearbySection onDataReady={handleSafetyDataReady} />
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-           <SOSSection userName={user?.username || user?.firstName || 'User'} safetyData={safetyData} />
            <JoinByInviteCode />
         </div>
       </div>

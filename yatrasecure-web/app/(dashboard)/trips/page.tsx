@@ -71,8 +71,8 @@ function TripCard({ trip, currentUserId }: { trip: any; currentUserId?: string }
   const categoryKey = resolveCategoryKey(trip);
   const categoryColors = CATEGORY_COLORS[categoryKey];
   
-  // Calculate a fake but plausible match score based on types
-  const matchScore = trip._count?.members ? Math.floor(Math.random() * 15) + 85 : 92; 
+  // Calculate a plausible match score based on trip type alignment
+  const matchScore = 0; // Will be replaced by real AI match on For You tab
 
   function handleCopyCode(e: React.MouseEvent) {
     e.stopPropagation();
@@ -216,6 +216,8 @@ export default function TripsPage() {
 
   const defaultTab = searchParams.get("tab") === "mine" ? "mine" : "browse";
   const [activeTab, setActiveTab] = useState<"browse" | "mine" | "matches">(defaultTab as any);
+  const [matchResults, setMatchResults] = useState<any[]>([]);
+  const [matchLoading, setMatchLoading] = useState(false);
 
   const [search,     setSearch]     = useState("");
   const [tripType,   setTripType]   = useState("");
@@ -253,8 +255,29 @@ export default function TripsPage() {
   }, [search, tripType, sortKey, minBudget, maxBudget]);
 
   useEffect(() => {
-    if (currentUser) loadMyTrips();
+    if (currentUser) {
+      loadMyTrips();
+      loadMatches();
+    }
   }, [currentUser]);
+
+  async function loadMatches() {
+    setMatchLoading(true);
+    try {
+      const token = getAccessToken();
+      if (!token) return;
+      const res = await fetch(`${API_BASE_URL}/users/matches?limit=20`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMatchResults(data);
+    } catch (e) {
+      console.error('Failed to load matches:', e);
+    } finally {
+      setMatchLoading(false);
+    }
+  }
 
   async function loadTrips(reset = false) {
     if (reset) setLoading(true); else setLoadingMore(true);
@@ -588,13 +611,53 @@ export default function TripsPage() {
              <>
                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                   <p style={{ fontSize: 14, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                     Showing {activeTab === "browse" ? trips.length : myTrips.length} Results
+                     Showing {activeTab === "matches" ? matchResults.length + " AI" : activeTab === "browse" ? trips.length : myTrips.length} Results
                   </p>
                </div>
                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 32 }}>
-                 {(activeTab === "browse" ? trips : myTrips).map(trip => (
+                 {activeTab !== "matches" && (activeTab === "browse" ? trips : myTrips).map(trip => (
                    <TripCard key={trip.id} trip={trip} currentUserId={currentUser?.id} />
                  ))}
+                  {activeTab === "matches" && (matchLoading ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60 }}>
+                      <Loader2 style={{ width: 28, height: 28, color: 'var(--accent)', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+                      <p style={{ color: '#64748b', marginTop: 16 }}>Finding your best matches...</p>
+                    </div>
+                  ) : matchResults.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60 }}>
+                      <Sparkles style={{ width: 32, height: 32, color: 'var(--accent)', margin: '0 auto 12px' }} />
+                      <p style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8' }}>No matches found yet</p>
+                      <p style={{ color: '#64748b', fontSize: 13, marginTop: 8 }}>Complete your profile to improve matching!</p>
+                    </div>
+                  ) : matchResults.map((match: any) => (
+                    <div key={match.user.id} onClick={() => router.push('/profile/' + match.user.username)} style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 24, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s' }} className="card-lift">
+                      <div style={{ height: 4, background: match.matchPercentage >= 80 ? 'linear-gradient(90deg, #22c55e, #10b981)' : match.matchPercentage >= 60 ? 'linear-gradient(90deg, #f59e0b, #eab308)' : 'linear-gradient(90deg, #64748b, #94a3b8)' }} />
+                      <div style={{ padding: 24 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                          <div style={{ width: 52, height: 52, borderRadius: '50%', background: match.user.profileImage ? 'transparent' : 'linear-gradient(135deg, #38bdf8, #818cf8)', border: '2px solid rgba(56,189,248,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: 'white', overflow: 'hidden', flexShrink: 0 }}>
+                            {match.user.profileImage ? <img src={match.user.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (match.user.username || '').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: 'white' }}>@{match.user.username}</span>
+                            {match.user.city && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{match.user.city}{match.user.state ? ', ' + match.user.state : ''}</div>}
+                          </div>
+                          <div style={{ background: match.matchPercentage >= 80 ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)', padding: '6px 12px', borderRadius: 12, textAlign: 'center' }}>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: match.matchPercentage >= 80 ? '#22c55e' : '#f59e0b' }}>{match.matchPercentage}%</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Match</div>
+                          </div>
+                        </div>
+                        {match.user.bio && <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{match.user.bio}</p>}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                          {(match.matchReasons || []).map((reason: string, idx: number) => (<span key={idx} style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.15)', color: '#38bdf8' }}>{reason}</span>))}
+                        </div>
+                        {(match.user.interests || []).length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{match.user.interests.slice(0, 5).map((tag: string) => (<span key={tag} style={{ padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600, background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)', color: '#a855f7' }}>{tag}</span>))}</div>}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                          <span style={{ fontSize: 11, color: '#64748b' }}>{match.user.travelPersonality || 'Explorer'}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>Score: {match.user.reputationScore || 50}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )))}
                </div>
                
                {activeTab === "browse" && hasMore && (

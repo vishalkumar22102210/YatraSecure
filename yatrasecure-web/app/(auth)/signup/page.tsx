@@ -72,15 +72,15 @@ export default function SignupPage() {
       const res = await fetch(`${API_BASE_URL}/auth/signup`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // ✅ SECURE: accept httpOnly cookie from server
         body:    JSON.stringify({ username: username.trim(), email: email.trim(), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : data.message || 'Registration failed');
       const accessToken  = data.access_token;
-      const refreshToken = data.refresh_token;
       const expiresIn    = data.expires_in;
       if (accessToken) {
-        setTokens(accessToken, refreshToken, Number(expiresIn));
+        setTokens(accessToken, Number(expiresIn));
         localStorage.setItem('user', JSON.stringify(data.user ?? {}));
         window.location.href = '/dashboard';
       } else {

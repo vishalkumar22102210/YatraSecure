@@ -8,15 +8,20 @@ export interface SafeUserDto {
   profileImage?: string;
   bio?: string;
   age?: number;
+  gender?: string;
   city?: string;
+  hometown?: string;
   state?: string;
   country?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
+  professionalStatus?: string;
   travelStyle?: string[];
+  interests?: string[];
   budgetRange?: string;
   travelPersonality?: string;
+  emergencyContacts?: any[];
   reputationScore: number;
   isVerified: boolean;
   isEmailVerified: boolean;
@@ -31,6 +36,7 @@ export interface MinimalUserDto {
   reputationScore: number;
   isVerified: boolean;
   travelPersonality?: string;
+  isMutual?: boolean;
 }
 
 export interface PublicProfileDto {
@@ -39,9 +45,12 @@ export interface PublicProfileDto {
   profileImage?: string;
   bio?: string;
   city?: string;
+  hometown?: string;
   state?: string;
   country?: string;
+  professionalStatus?: string;
   travelStyle?: string[];
+  interests?: string[];
   travelPersonality?: string;
   reputationScore: number;
   isVerified: boolean;
@@ -71,15 +80,20 @@ export class UserMapperService {
       profileImage: user.profileImage || undefined,
       bio: user.bio || undefined,
       age: user.age || undefined,
+      gender: user.gender || undefined,
       city: user.city || undefined,
+      hometown: user.hometown || undefined,
       state: user.state || undefined,
       country: user.country || undefined,
       firstName: user.firstName || undefined,
       lastName: user.lastName || undefined,
       phone: user.phone || undefined,
+      professionalStatus: user.professionalStatus || undefined,
       travelStyle: user.travelStyle || [],
+      interests: user.interests || [],
       budgetRange: user.budgetRange || undefined,
       travelPersonality: user.travelPersonality || undefined,
+      emergencyContacts: user.emergencyContacts || [],
       reputationScore: user.reputationScore || 50,
       isVerified: user.isVerified || false,
       isEmailVerified: user.isEmailVerified || false,
@@ -102,6 +116,7 @@ export class UserMapperService {
       reputationScore: user.reputationScore || 50,
       isVerified: user.isVerified || false,
       travelPersonality: user.travelPersonality || undefined,
+      isMutual: user.isMutual || undefined,
     };
   }
 

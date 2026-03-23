@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserMapperService } from '../common/mappers/user.mapper';
+import { NotificationsService } from '../notifications/notifications.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private userMapper: UserMapperService,
+    private notificationsService: NotificationsService,
   ) {}
 
   // ✅ Safe selection fields for all queries
@@ -18,15 +20,20 @@ export class UsersService {
     profileImage: true,
     bio: true,
     age: true,
+    gender: true,
     city: true,
+    hometown: true,
     state: true,
     country: true,
+    professionalStatus: true,
     firstName: true,
     lastName: true,
     phone: true,
     travelStyle: true,
+    interests: true,
     budgetRange: true,
     travelPersonality: true,
+    emergencyContacts: true,
     reputationScore: true,
     isVerified: true,
     isEmailVerified: true,
@@ -123,13 +130,18 @@ export class UsersService {
    * Update profile
    */
   async updateProfile(userId: string, data: any) {
-    const user = await this.prisma.user.update({
-      where: { id: userId },
-      data,
-      select: this.SAFE_USER_SELECT,
-    });
-
-    return this.userMapper.toSafeUserDto(user);
+    console.log('Updating profile for user:', userId, 'with data:', data);
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data,
+        select: this.SAFE_USER_SELECT,
+      });
+      return this.userMapper.toSafeUserDto(user);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
   }
 
   /**
@@ -173,6 +185,31 @@ export class UsersService {
   }
 
   /**
+   * Get all users (paginated)
+   */
+  async findAll(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        skip,
+        take: limit,
+        select: this.MINIMAL_SELECT,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count(),
+    ]);
+
+    return {
+      users: this.userMapper.toMinimalUserDtoArray(users),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
    * Validate password
    */
   async validatePassword(
@@ -199,15 +236,32 @@ export class UsersService {
       throw new ConflictException('You cannot follow yourself');
     }
 
-    await this.prisma.user.update({
-      where: { id: followerId },
+    // Create Follow record
+    await this.prisma.follow.create({
       data: {
-        // @ts-ignore
-        following: {
-          connect: { id: target.id },
-        },
+        followerId,
+        followingId: target.id,
       },
+    }).catch((e) => {
+      // Ignore unique constraint (already following)
+      if (e.code !== 'P2002') throw e;
     });
+
+    // Send Notification to Target
+    try {
+      const follower = await this.prisma.user.findUnique({ where: { id: followerId } });
+      if (follower) {
+        await this.notificationsService.createNotification(
+          target.id,
+          'FOLLOW',
+          'New Follower',
+          `@${follower.username} started following you`,
+          `/profile/${follower.username}`,
+        );
+      }
+    } catch (e) {
+      console.error('Failed to create follow notification:', e);
+    }
 
     return { message: 'Followed successfully' };
   }
@@ -225,13 +279,10 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    await this.prisma.user.update({
-      where: { id: followerId },
-      data: {
-        // @ts-ignore
-        following: {
-          disconnect: { id: target.id },
-        },
+    await this.prisma.follow.deleteMany({
+      where: {
+        followerId,
+        followingId: target.id,
       },
     });
 
@@ -239,44 +290,116 @@ export class UsersService {
   }
 
   /**
-   * Get followers
+   * Get followers (with optional mutual check)
    */
-  async getFollowers(username: string) {
+  async getFollowers(username: string, currentUserId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: {
-        // @ts-ignore
         followers: {
-          select: this.MINIMAL_SELECT,
-        },
-      },
+          select: {
+            follower: {
+              select: this.MINIMAL_SELECT
+            }
+          }
+        }
+      }
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    return this.userMapper.toMinimalUserDtoArray(user.followers as any);
+    const followersList = user.followers.map(f => f.follower);
+    
+    // Optional: flag mutuals
+    let detailedFollowers = followersList as any[];
+    if (currentUserId && followersList.length > 0) {
+      const mutuals = await this.prisma.follow.findMany({
+        where: {
+          followerId: currentUserId,
+          followingId: { in: followersList.map(f => f.id) }
+        },
+        select: { followingId: true }
+      });
+      const mutualIds = new Set(mutuals.map(m => m.followingId));
+      detailedFollowers = followersList.map(f => ({
+        ...f,
+        isMutual: mutualIds.has(f.id)
+      }));
+    }
+
+    return this.userMapper.toMinimalUserDtoArray(detailedFollowers);
   }
 
   /**
-   * Get following
+   * Get following (with optional mutual check)
    */
-  async getFollowing(username: string) {
+  async getFollowing(username: string, currentUserId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: {
-        // @ts-ignore
         following: {
-          select: this.MINIMAL_SELECT,
-        },
-      },
+          select: {
+            following: {
+              select: this.MINIMAL_SELECT
+            }
+          }
+        }
+      }
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    return this.userMapper.toMinimalUserDtoArray(user.following as any);
+    const followingList = user.following.map(f => f.following);
+
+    let detailedFollowing = followingList as any[];
+    if (currentUserId && followingList.length > 0) {
+      const mutuals = await this.prisma.follow.findMany({
+        where: {
+          followerId: currentUserId,
+          followingId: { in: followingList.map(f => f.id) }
+        },
+        select: { followingId: true }
+      });
+      const mutualIds = new Set(mutuals.map(m => m.followingId));
+      detailedFollowing = followingList.map(f => ({
+        ...f,
+        isMutual: mutualIds.has(f.id)
+      }));
+    }
+
+    return this.userMapper.toMinimalUserDtoArray(detailedFollowing);
+  }
+
+  /**
+   * Get mutual connections (uses native intersection)
+   */
+  async getMutualConnections(username: string, currentUserId: string) {
+    if (!currentUserId) return [];
+    
+    const target = await this.prisma.user.findUnique({
+      where: { username },
+      select: { id: true }
+    });
+
+    if (!target) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Mutuals = users that target follows AND current user follows
+    const mutuals = await this.prisma.user.findMany({
+      where: {
+        AND: [
+          { followers: { some: { followerId: target.id } } },
+          { followers: { some: { followerId: currentUserId } } }
+        ]
+      },
+      select: this.MINIMAL_SELECT
+    });
+
+    return this.userMapper.toMinimalUserDtoArray(mutuals.map(m => ({ ...m, isMutual: true })));
   }
 }

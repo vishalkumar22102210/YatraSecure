@@ -21,7 +21,7 @@ export class JoinRequestsService {
   async create(tripId: string, userId: string, message?: string) {
     const trip = await this.prisma.trip.findUnique({
       where: { id: tripId },
-      include: { admin: true },
+      include: { admin: { select: { id: true, email: true, username: true } } },
     });
 
     if (!trip) throw new NotFoundException('Trip not found');
@@ -54,7 +54,7 @@ export class JoinRequestsService {
       data: { tripId, requesterId: userId, message },
       include: {
         requester: {
-          select: { id: true, username: true, email: true, city: true, state: true },
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
         },
       },
     });
@@ -103,7 +103,7 @@ export class JoinRequestsService {
       where: { tripId },
       include: {
         requester: {
-          select: { id: true, username: true, email: true, city: true, state: true },
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -118,9 +118,9 @@ export class JoinRequestsService {
     const request = await this.prisma.joinRequest.findUnique({
       where: { id: requestId },
       include: {
-        trip: true,
+        trip: { select: { id: true, name: true, adminId: true } },
         requester: {
-          select: { id: true, username: true, email: true },
+          select: { id: true, username: true, email: true, profileImage: true },
         },
       },
     });
@@ -187,7 +187,7 @@ export class JoinRequestsService {
       }
     }
 
-    return updated;
+    return { id: updated.id, status: updated.status, message: `Request ${status}` };
   }
 
   async findOne(requestId: string) {
@@ -196,7 +196,7 @@ export class JoinRequestsService {
       include: {
         trip: { select: { id: true, name: true, adminId: true } },
         requester: {
-          select: { id: true, username: true, email: true, city: true, state: true },
+          select: { id: true, username: true, city: true, state: true, profileImage: true },
         },
       },
     });

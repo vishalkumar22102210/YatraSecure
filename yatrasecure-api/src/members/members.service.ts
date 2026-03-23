@@ -31,10 +31,11 @@ export class MembersService {
           select: {
             id: true,
             username: true,
-            email: true,
             city: true,
             state: true,
             profileImage: true,
+            reputationScore: true,
+            isVerified: true,
           },
         },
       },

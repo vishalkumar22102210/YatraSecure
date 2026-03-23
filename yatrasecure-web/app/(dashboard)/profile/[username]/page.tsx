@@ -5,9 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { 
   ArrowLeft, UserPlus, UserCheck, MapPin, 
-  Map, Loader2, Users, Compass 
+  Map, Loader2, Users, Compass, Star, ShieldCheck, User
 } from "lucide-react";
 import { API_BASE_URL, getAccessToken } from "@/app/lib/api";
+import FollowButton from "@/components/FollowButton";
+import Link from 'next/link';
 
 export default function PublicProfilePage() {
   const params = useParams();
@@ -18,6 +20,10 @@ export default function PublicProfilePage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'followers' | 'following' | 'mutuals' | null>(null);
+  const [connectionUsers, setConnectionUsers] = useState<any[]>([]);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem("user");
@@ -86,6 +92,31 @@ export default function PublicProfilePage() {
       toast.error(e.message);
     } finally {
       setFollowLoading(false);
+    }
+  }
+
+  async function loadConnections(tab: 'followers' | 'following' | 'mutuals') {
+    if (activeTab === tab) {
+      setActiveTab(null); // Toggle off
+      return;
+    }
+    
+    setActiveTab(tab);
+    setConnectionsLoading(true);
+    setConnectionUsers([]);
+
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`${API_BASE_URL}/users/profile/${username}/${tab}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setConnectionUsers(await res.json());
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setConnectionsLoading(false);
     }
   }
 
@@ -167,18 +198,109 @@ export default function PublicProfilePage() {
                      <span style={{ fontSize: 18, fontWeight: 800, color: "white" }}>{profile._count?.trips || 0}</span>
                      <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Trips</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                     <span style={{ fontSize: 18, fontWeight: 800, color: "white" }}>{profile._count?.followers || 0}</span>
-                     <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Followers</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                     <span style={{ fontSize: 18, fontWeight: 800, color: "white" }}>{profile._count?.following || 0}</span>
-                     <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Following</span>
-                  </div>
+                  
+                  <button 
+                    onClick={() => loadConnections('followers')}
+                    style={{ background: 'none', border: 'none', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', display: "flex", alignItems: "center", gap: 8, transition: 'all 0.2s', ...(activeTab === 'followers' ? { background: 'rgba(59,130,246,0.1)', outline: '1px solid rgba(59,130,246,0.3)' } : {}) }}
+                    className="hover:bg-white/5"
+                  >
+                     <span style={{ fontSize: 18, fontWeight: 800, color: activeTab === 'followers' ? '#60a5fa' : 'white' }}>{profile._count?.followers || 0}</span>
+                     <span style={{ fontSize: 13, color: activeTab === 'followers' ? '#93c5fd' : '#64748b', fontWeight: 600 }}>Followers</span>
+                  </button>
+
+                  <button 
+                    onClick={() => loadConnections('following')}
+                    style={{ background: 'none', border: 'none', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', display: "flex", alignItems: "center", gap: 8, transition: 'all 0.2s', ...(activeTab === 'following' ? { background: 'rgba(59,130,246,0.1)', outline: '1px solid rgba(59,130,246,0.3)' } : {}) }}
+                    className="hover:bg-white/5"
+                  >
+                     <span style={{ fontSize: 18, fontWeight: 800, color: activeTab === 'following' ? '#60a5fa' : 'white' }}>{profile._count?.following || 0}</span>
+                     <span style={{ fontSize: 13, color: activeTab === 'following' ? '#93c5fd' : '#64748b', fontWeight: 600 }}>Following</span>
+                  </button>
+
+                  {!isSelf && (
+                    <button 
+                      onClick={() => loadConnections('mutuals')}
+                      style={{ background: 'none', border: 'none', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', display: "flex", alignItems: "center", gap: 8, transition: 'all 0.2s', ...(activeTab === 'mutuals' ? { background: 'rgba(168,85,247,0.1)', outline: '1px solid rgba(168,85,247,0.3)' } : {}) }}
+                      className="hover:bg-white/5"
+                    >
+                      <Users style={{ width: 14, height: 14, color: activeTab === 'mutuals' ? '#c084fc' : '#64748b' }} />
+                      <span style={{ fontSize: 13, color: activeTab === 'mutuals' ? '#d8b4fe' : '#64748b', fontWeight: 600 }}>Mutuals</span>
+                    </button>
+                  )}
                </div>
             </div>
          </div>
       </div>
+
+      {/* CONNECTIONS VIEWER */}
+      {activeTab && (
+        <div className="mt-6 p-6 bg-slate-900/60 rounded-3xl border border-white/5 animate-in slide-in-from-top-4 duration-300">
+          <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+            {activeTab === 'mutuals' && <Users className="w-4 h-4 text-purple-400"/>}
+            {activeTab === 'mutuals' ? 'Mutual Connections' : activeTab === 'followers' ? 'Followers' : 'Following'}
+          </h3>
+
+          {connectionsLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+            </div>
+          ) : connectionUsers.length === 0 ? (
+            <div className="text-center p-8 text-slate-400 text-sm bg-black/20 rounded-xl border border-white/5">
+              No {activeTab} found
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {connectionUsers.map((u, i) => (
+                <Link 
+                  href={`/profile/${u.username}`}
+                  key={u.id}
+                  className="group flex flex-col p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:border-white/10 transition-all hover:-translate-y-1 relative overflow-hidden"
+                  style={{ animation: `fadeIn 0.3s ease-out ${i * 0.05}s both` }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-slate-300 border border-white/10 shrink-0 overflow-hidden shadow-inner">
+                      {u.profileImage ? (
+                        <img src={u.profileImage} alt={u.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-5 h-5" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-slate-100 truncate text-sm">{u.username}</h3>
+                        {u.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-sky-400 shrink-0" />}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs mt-1">
+                        <span className="flex items-center gap-1 text-amber-400 font-semibold shrink-0">
+                          <Star className="w-3 h-3 fill-amber-400" /> {u.reputationScore}
+                        </span>
+                        {/* MUTUAL BADGE */}
+                        {u.isMutual && (
+                          <span className="px-2 py-0.5 bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 rounded-md text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                            <Users className="w-3 h-3" /> Mutual
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5 z-10">
+                    <span className="text-xs text-slate-500 font-medium">
+                      {u.travelPersonality || 'Explorer'}
+                    </span>
+                    <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                      {(!currentUser || currentUser.id !== u.id) && (
+                        <FollowButton targetUserId={u.id} size="sm" variant={u.isMutual ? "default" : "outline"} />
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TRAVEL STYLE */}
       {profile.travelStyle && profile.travelStyle.length > 0 && (

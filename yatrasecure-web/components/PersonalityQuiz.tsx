@@ -211,6 +211,7 @@ export default function PersonalityQuiz({ onComplete, initialPersonality }: { on
              A quick 3-question quiz to curate your perfect dashboard experience.
            </p>
            <button 
+             suppressHydrationWarning
              onClick={() => setStep(1)}
              style={{ 
                background: 'linear-gradient(135deg, #f97316, #fbbf24)', padding: '12px 24px', 
@@ -243,6 +244,7 @@ export default function PersonalityQuiz({ onComplete, initialPersonality }: { on
                 const Icon = opt.icon;
                 return (
                   <button 
+                    suppressHydrationWarning
                     key={opt.value}
                     onClick={() => handleAnswer(step, opt.value)}
                     style={{ 
@@ -275,6 +277,7 @@ export default function PersonalityQuiz({ onComplete, initialPersonality }: { on
       {step === QUESTIONS.length && !loading && !answers[QUESTIONS.length] && (
          <div style={{ marginTop: 24, textAlign: 'center' }}>
             <button 
+              suppressHydrationWarning
               onClick={calculateResult}
               style={{ width: '100%', padding: '12px 24px', borderRadius: 12, background: 'linear-gradient(135deg, #f97316, #fbbf24)', border: 'none', color: 'white', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
               className="hover:scale-[1.02] active:scale-95 transition-transform"

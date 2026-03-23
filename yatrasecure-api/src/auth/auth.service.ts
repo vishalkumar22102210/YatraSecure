@@ -53,25 +53,17 @@ export class AuthService {
 
   private setAuthCookies(res: Response, tokens: TokenPair) {
     const secure = this.isProd();
-    const sameSite = secure ? 'strict' : 'lax'; // ✅ Changed to strict
+    const sameSite = secure ? 'strict' : 'lax';
     const domain = this.getCookieDomain();
 
-    // Access token: 15 min
-    res.cookie(this.getAccessCookieName(), tokens.access_token, {
-      httpOnly: true, // ✅ Cannot be accessed by JavaScript
-      secure, // ✅ HTTPS only in production
-      sameSite: sameSite as any, // ✅ CSRF protection
-      path: '/',
-      maxAge: tokens.expires_in * 1000,
-      domain,
-    });
-
-    // Refresh token: 30 days (path restricted)
+    // ✅ SECURE: Only refresh_token in httpOnly cookie
+    // access_token is returned in response body for Bearer auth (frontend needs it in JS)
+    // refresh_token is NEVER in response body — only in this cookie
     res.cookie(this.getRefreshCookieName(), tokens.refresh_token, {
-      httpOnly: true,
-      secure,
-      sameSite: sameSite as any,
-      path: '/api/auth/refresh',
+      httpOnly: true,      // ✅ Cannot be accessed by JavaScript
+      secure,              // ✅ HTTPS only in production
+      sameSite: sameSite as any, // ✅ CSRF protection
+      path: '/api/auth/refresh', // ✅ Only sent to refresh endpoint
       maxAge: 30 * 24 * 60 * 60 * 1000,
       domain,
     });
@@ -82,14 +74,7 @@ export class AuthService {
     const sameSite = secure ? 'strict' : 'lax';
     const domain = this.getCookieDomain();
 
-    res.clearCookie(this.getAccessCookieName(), {
-      httpOnly: true,
-      secure,
-      sameSite: sameSite as any,
-      path: '/',
-      domain,
-    });
-
+    // ✅ Only refresh_token cookie needs clearing (access_token is not in cookie)
     res.clearCookie(this.getRefreshCookieName(), {
       httpOnly: true,
       secure,
@@ -179,10 +164,10 @@ export class AuthService {
     // ✅ Set tokens in httpOnly cookies ONLY
     this.setAuthCookies(res, tokens);
 
-    // ✅ Response contains ONLY safe user data
-    // ❌ NO tokens in response body
+    // ✅ SECURE: access_token in body (for Bearer auth), refresh_token ONLY in cookie
     return {
       user: this.userMapper.toSafeUserDto(user),
+      access_token: tokens.access_token,
       expires_in: tokens.expires_in,
       message: 'Signup successful. Please verify your email.',
     };
@@ -211,9 +196,10 @@ export class AuthService {
     // ✅ Set tokens in httpOnly cookies ONLY
     this.setAuthCookies(res, tokens);
 
-    // ��� Response contains ONLY safe user data
+    // ✅ SECURE: access_token in body (for Bearer auth), refresh_token ONLY in cookie
     return {
       user: this.userMapper.toSafeUserDto(user),
+      access_token: tokens.access_token,
       expires_in: tokens.expires_in,
       message: 'Login successful',
     };
@@ -276,9 +262,11 @@ export class AuthService {
       // ✅ Update cookies with new tokens
       this.setAuthCookies(res, tokens);
 
-      // ✅ Response contains ONLY expires_in
-      // ❌ NO tokens, NO user data
-      return { expires_in: tokens.expires_in };
+      // ✅ SECURE: access_token in body, refresh_token ONLY in cookie
+      return {
+        access_token: tokens.access_token,
+        expires_in: tokens.expires_in,
+      };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }

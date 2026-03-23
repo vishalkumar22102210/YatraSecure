@@ -10,23 +10,16 @@ export function getAccessToken(): string | null {
   return localStorage.getItem('accesstoken');
 }
 
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('refreshtoken');
-}
+// ✅ SECURE: No getRefreshToken() — refresh_token lives ONLY in httpOnly cookie
 
-export function setTokens(
-  accessToken: string,
-  refreshToken: string,
-  expiresIn: number,
-) {
+export function setTokens(accessToken: string, expiresIn: number) {
   if (typeof window === 'undefined') return;
   if (!accessToken) {
     console.error('[setTokens] accessToken is undefined — check backend response keys');
     return;
   }
   localStorage.setItem('accesstoken', accessToken);
-  localStorage.setItem('refreshtoken', refreshToken ?? '');
+  // ✅ SECURE: refresh_token is NOT stored in localStorage (httpOnly cookie only)
   const expiresAt = Date.now() + (Number(expiresIn) || 900) * 1000;
   localStorage.setItem('tokenexpiresat', expiresAt.toString());
 }
@@ -34,7 +27,7 @@ export function setTokens(
 export function clearTokens() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('accesstoken');
-  localStorage.removeItem('refreshtoken');
+  localStorage.removeItem('refreshtoken'); // cleanup legacy key if exists
   localStorage.removeItem('tokenexpiresat');
   localStorage.removeItem('user');
 }
@@ -53,38 +46,31 @@ function addRefreshSubscriber(cb: (token: string) => void) {
 }
 
 // ── Refresh Access Token ──
+// ✅ SECURE: refresh_token is sent automatically via httpOnly cookie (credentials: 'include')
+// No token in request body or localStorage
 export async function refreshAccessToken(): Promise<string> {
   if (isRefreshing) {
     return new Promise((resolve) => addRefreshSubscriber(resolve));
   }
 
   isRefreshing = true;
-  const refreshToken = getRefreshToken();
-
-  if (!refreshToken) {
-    isRefreshing = false;
-    clearTokens();
-    if (typeof window !== 'undefined') window.location.href = '/login';
-    throw new Error('No refresh token found');
-  }
 
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: 'include', // ✅ SECURE: sends httpOnly cookie automatically
     });
 
     if (!response.ok) throw new Error('Token refresh failed');
 
     const data = await response.json();
 
-    // ✅ Backend returns: access_token, refresh_token, expires_in
-    const newAccessToken  = data.access_token;
-    const newRefreshToken = data.refresh_token;
-    const expiresIn       = data.expires_in;
+    // ✅ Backend returns: access_token, expires_in (NO refresh_token in body)
+    const newAccessToken = data.access_token;
+    const expiresIn = data.expires_in;
 
-    setTokens(newAccessToken, newRefreshToken, expiresIn);
+    setTokens(newAccessToken, expiresIn);
     isRefreshing = false;
     onTokenRefreshed(newAccessToken);
     return newAccessToken;
@@ -101,6 +87,9 @@ export async function fetchWithAuth(
   url: string,
   options: RequestInit = {},
 ): Promise<Response> {
+  // If relative URL, prepend API_BASE_URL
+  const fullUrl = url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+
   let token = getAccessToken();
 
   if (!token) {
@@ -112,8 +101,9 @@ export async function fetchWithAuth(
   }
 
   const makeRequest = (t: string) =>
-    fetch(url, {
+    fetch(fullUrl, {
       ...options,
+      credentials: 'include', // ✅ SECURE: always send cookies
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, MapPin, Star, ShieldCheck, User } from 'lucide-react';
+import { Sparkles, MapPin, Star, ShieldCheck, User, ArrowRight } from 'lucide-react';
 import { API_BASE_URL, getAccessToken } from '@/app/lib/api';
 import FollowButton from './FollowButton';
+import Link from 'next/link';
 
 interface SuggestedUser {
   id: string;
@@ -92,28 +93,32 @@ export default function SuggestedTravelers() {
           <Sparkles style={{ width: 16, height: 16, color: '#f59e0b' }} /> Network Suggestions
         </h3>
         <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>AI MATCHED</span>
+        <Link href="/network" style={{ fontSize: 13, color: '#38bdf8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }} className="hover:text-blue-400 transition-colors">
+          View All <ArrowRight style={{ width: 14, height: 14 }} />
+        </Link>
       </div>
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
         {users.map((u, i) => {
           const matchPercent = u.matchScore || 0;
           const location = getMockLocation(u.id);
           const persona = u.travelPersonality || 'Explorer';
           
           return (
-            <div 
+            <Link 
+              href={`/profile/${u.username}`}
               key={u.id}
               style={{ 
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                padding: '12px', borderRadius: 16,
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)',
-                cursor: 'pointer',
+                padding: '16px', borderRadius: '16px',
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                cursor: 'pointer', textDecoration: 'none',
                 animation: `fadeIn 0.3s ease-out ${i * 0.1}s both`,
               }}
-              className="hover:bg-white/5 hover:border-white/10 transition-all group"
+              className="hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 group"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, overflow: 'hidden' }}>
-                <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
                   <div style={{ 
                     width: 44, height: 44, borderRadius: 14, 
                     background: 'linear-gradient(135deg, #1e293b, #0f172a)',
@@ -132,45 +137,51 @@ export default function SuggestedTravelers() {
                   }} />
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: 'white', margin: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                       {u.username}
                     </p>
-                    {u.isVerified && <ShieldCheck style={{ width: 14, height: 14, color: '#38bdf8' }} />}
+                    {u.isVerified && <ShieldCheck style={{ width: 14, height: 14, color: '#38bdf8', flexShrink: 0 }} />}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#94a3b8' }}>
-                      <MapPin style={{ width: 10, height: 10 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#94a3b8', minWidth: 0 }}>
+                      <MapPin style={{ width: 10, height: 10, flexShrink: 0 }} />
                       <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{location}</span>
                     </div>
-                    <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#fbbf24', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#fbbf24', fontWeight: 600, flexShrink: 0 }}>
                       <Star style={{ width: 10, height: 10, fill: '#fbbf24' }} /> {u.reputationScore}
                     </div>
                   </div>
 
                   {/* Badges / Persona / Match */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                     <span style={{ 
                       fontSize: 10, fontWeight: 600, color: '#a855f7', 
                       background: 'rgba(168,85,247,0.1)', padding: '2px 6px', borderRadius: 4,
-                      border: '1px solid rgba(168,85,247,0.2)'
+                      border: '1px solid rgba(168,85,247,0.2)', whiteSpace: 'nowrap'
                     }}>{persona}</span>
                     <span style={{ 
                       fontSize: 10, fontWeight: 600, color: matchPercent > 80 ? '#10b981' : '#f59e0b', 
                       background: matchPercent > 80 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: 4,
-                      border: matchPercent > 80 ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                      border: matchPercent > 80 ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(245,158,11,0.2)', whiteSpace: 'nowrap'
                     }}>{matchPercent}% Match</span>
                   </div>
                 </div>
               </div>
 
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <div 
+                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                onClick={(e) => {
+                  // Prevent the Link from navigating when clicking the follow button
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
                 <FollowButton targetUserId={u.id} size="sm" variant="outline" />
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
