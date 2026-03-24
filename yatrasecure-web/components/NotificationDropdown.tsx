@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell, UserPlus, Map, CheckCircle2, AlertCircle, X, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { API_BASE_URL, getAccessToken } from '@/app/lib/api';
+import { API_BASE_URL, fetchWithAuth } from '@/app/lib/api';
 
 export default function NotificationDropdown() {
   const router = useRouter();
@@ -41,27 +41,20 @@ export default function NotificationDropdown() {
 
   const fetchUnreadCount = async () => {
     try {
-      const token = getAccessToken();
-      if (!token) return;
-      const res = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/notifications/unread-count`);
       if (res.ok) {
         const data = await res.json();
         setUnread(data.count);
       }
     } catch (e) {
-      // silent
+      // silent — user may not be logged in yet
     }
   };
 
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const token = getAccessToken();
-      const res = await fetch(`${API_BASE_URL}/notifications`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/notifications`);
       if (res.ok) {
         setNotifications(await res.json());
       }
@@ -74,10 +67,8 @@ export default function NotificationDropdown() {
 
   const markAsRead = async (id: string, link: string | null) => {
     try {
-      const token = getAccessToken();
-      await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+      await fetchWithAuth(`${API_BASE_URL}/notifications/${id}/read`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
       });
       // Optimistic update
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
@@ -93,10 +84,8 @@ export default function NotificationDropdown() {
   const markAllAsRead = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = getAccessToken();
-      await fetch(`${API_BASE_URL}/notifications/read-all`, {
+      await fetchWithAuth(`${API_BASE_URL}/notifications/read-all`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnread(0);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Sparkles, MapPin, Star, ShieldCheck, User, ArrowRight } from 'lucide-react';
-import { API_BASE_URL, getAccessToken } from '@/app/lib/api';
+import { API_BASE_URL, fetchWithAuth } from '@/app/lib/api';
 import FollowButton from './FollowButton';
 import Link from 'next/link';
 
@@ -45,10 +45,7 @@ export default function SuggestedTravelers() {
 
   async function fetchSuggestions() {
     try {
-      const token = getAccessToken();
-      const res = await fetch(`${API_BASE_URL}/social/suggestions`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/social/suggestions`);
       if (res.ok) {
         setUsers(await res.json());
       }

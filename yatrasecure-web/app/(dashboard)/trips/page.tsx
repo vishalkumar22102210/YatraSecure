@@ -9,7 +9,7 @@ import {
   KeyRound, Copy, Check, Info, Heart, Star,
   ShieldCheck, Compass, Sparkles
 } from "lucide-react";
-import { API_BASE_URL, getAccessToken } from "@/app/lib/api";
+import { API_BASE_URL, fetchWithAuth } from "@/app/lib/api";
 import FollowButton from "@/components/FollowButton";
 import { TravelThemeContext, CATEGORY_IMAGE_SETS, normalizeCategoryKey } from "@/app/TravelThemeProvider";
 import { CategoryCharacter } from "@/components/CategoryCharacter";
@@ -264,11 +264,7 @@ export default function TripsPage() {
   async function loadMatches() {
     setMatchLoading(true);
     try {
-      const token = getAccessToken();
-      if (!token) return;
-      const res = await fetch(`${API_BASE_URL}/users/matches?limit=20`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/users/matches?limit=20`);
       if (!res.ok) return;
       const data = await res.json();
       setMatchResults(data);
@@ -283,7 +279,6 @@ export default function TripsPage() {
     if (reset) setLoading(true); else setLoadingMore(true);
     try {
       const [sortBy, sortOrder] = sortKey.split("-");
-      const token = getAccessToken();
       const params = new URLSearchParams({
         page:  reset ? "1" : String(page),
         limit: "12", sortBy, sortOrder,
@@ -294,8 +289,7 @@ export default function TripsPage() {
       if (maxBudget) params.append("maxBudget", maxBudget);
       if (activeTab === "matches") params.append("matchmaking", "true");
 
-      const headers: any = token ? { Authorization: `Bearer ${token}` } : {};
-      const res  = await fetch(`${API_BASE_URL}/trips?${params}`, { headers });
+      const res  = await fetchWithAuth(`${API_BASE_URL}/trips?${params}`);
       if (!res.ok) throw new Error("Failed to load");
       const data = await res.json();
 
@@ -313,11 +307,7 @@ export default function TripsPage() {
 
   async function loadMyTrips() {
     try {
-      const token = getAccessToken();
-      if (!token) return;
-      const res = await fetch(`${API_BASE_URL}/trips?myTrips=true&limit=50&sortBy=createdAt&sortOrder=desc`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips?myTrips=true&limit=50&sortBy=createdAt&sortOrder=desc`);
       if (!res.ok) return;
       const data = await res.json();
       setMyTrips(data.trips || []);

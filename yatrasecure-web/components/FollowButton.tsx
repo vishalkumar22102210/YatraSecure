@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
-import { API_BASE_URL, getAccessToken } from '@/app/lib/api';
+import { fetchWithAuth } from '@/app/lib/api';
 import toast from 'react-hot-toast';
 
 interface FollowButtonProps {
@@ -30,14 +30,7 @@ export default function FollowButton({
 
   async function checkStatus() {
     try {
-      const token = getAccessToken();
-      if (!token) {
-        setChecking(false);
-        return;
-      }
-      const res = await fetch(`${API_BASE_URL}/social/is-following/${targetUserId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`/social/is-following/${targetUserId}`);
       if (res.ok) {
         const data = await res.json();
         setIsFollowing(data.following);
@@ -50,21 +43,12 @@ export default function FollowButton({
   }
 
   async function toggleFollow() {
-    const token = getAccessToken();
-    if (!token) {
-      toast.error('Please login to follow travelers');
-      return;
-    }
-
     setLoading(true);
     try {
       const method = isFollowing ? 'DELETE' : 'POST';
       const endpoint = isFollowing ? 'unfollow' : 'follow';
       
-      const res = await fetch(`${API_BASE_URL}/social/${endpoint}/${targetUserId}`, {
-        method,
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`/social/${endpoint}/${targetUserId}`, { method });
 
       if (res.ok) {
         const newState = !isFollowing;

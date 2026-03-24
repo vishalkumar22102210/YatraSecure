@@ -8,13 +8,13 @@ async function main() {
 
   // Create a matched test user for browser_test@example.com
   const existingTestUser = await prisma.user.findUnique({ where: { username: 'testmatchuser' } });
-  
+
   if (!existingTestUser) {
     await prisma.user.create({
       data: {
         email: 'testmatchuser@example.com',
         username: 'testmatchuser',
-        passwordHash: 'dummyhash',
+        password: 'dummyhash',
         firstName: 'Test',
         lastName: 'Match',
         city: 'Mumbai',

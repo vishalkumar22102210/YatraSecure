@@ -11,7 +11,7 @@ import {
   Link as LinkIcon, Edit2, Trash2, X, ChevronRight, Download, Send, UserPlus, CheckCircle, XCircle,
   ArrowLeft, Eye, EyeOff, MessageCircle, Pencil, Loader2, LogOut, Sparkles, Save, Radar
 } from 'lucide-react';
-import { API_BASE_URL, getAccessToken } from '@/app/lib/api';
+import { API_BASE_URL, fetchWithAuth } from '@/app/lib/api';
 
 // Dynamic import for map (SSR fix)
 const ItineraryMapWrapper = dynamic(
@@ -176,11 +176,7 @@ export default function TripDetailPage() {
   async function loadTrip() {
     setLoading(true);
     try {
-      const token   = getAccessToken();
-      const headers: any = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const res = await fetch(`${API_BASE_URL}/trips/${tripId}`, { headers });
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}`);
       if (!res.ok) throw new Error('Trip not found');
       const data = await res.json();
       setTrip(data);
@@ -195,24 +191,20 @@ export default function TripDetailPage() {
       }
 
       try {
-        const mRes = await fetch(`${API_BASE_URL}/trips/${tripId}/members`, { headers });
+        const mRes = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/members`);
         if (mRes.ok) {
           const mData = await mRes.json();
           setMembers(Array.isArray(mData) ? mData : (mData.data || mData.members || []));
         }
       } catch { /* ignore */ }
 
-      if (token) {
-        try {
-          const jRes = await fetch(`${API_BASE_URL}/trips/${tripId}/join-requests`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (jRes.ok) {
-            const jData = await jRes.json();
-            setJoinRequests(Array.isArray(jData) ? jData : (jData.data || jData.requests || []));
-          }
-        } catch { /* ignore */ }
-      }
+      try {
+        const jRes = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/join-requests`);
+        if (jRes.ok) {
+          const jData = await jRes.json();
+          setJoinRequests(Array.isArray(jData) ? jData : (jData.data || jData.requests || []));
+        }
+      } catch { /* ignore */ }
     } catch (e: any) {
       toast.error(e.message || 'Failed to load trip');
       router.push('/trips');
@@ -227,10 +219,8 @@ export default function TripDetailPage() {
     setItineraryError('');
     setShowPromptBox(false);
     try {
-      const token = getAccessToken();
-      const res   = await fetch(`${API_BASE_URL}/trips/${tripId}/itinerary/generate`, {
+      const res   = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/itinerary/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ customPrompt: customPrompt.trim() || undefined }),
       });
       const data = await res.json();
@@ -253,10 +243,8 @@ export default function TripDetailPage() {
     setSavingItinerary(true);
     setItineraryError('');
     try {
-      const token = getAccessToken();
-      const res   = await fetch(`${API_BASE_URL}/trips/${tripId}/itinerary`, {
+      const res   = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/itinerary`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ itinerary: editedItinerary }),
       });
       const data = await res.json();
@@ -279,17 +267,13 @@ export default function TripDetailPage() {
     setGeneratingBookings(true);
     setBookingError('');
     try {
-      const res = await fetch(`/api/trips/${tripId}/booking-agents`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAccessToken()}`,
-        },
-        body: JSON.stringify({
-          customPrompt: bookingPrompt,
-          answers: bookingAnswers,
-        }),
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/booking-agents`, {
+  method: 'POST',
+  body: JSON.stringify({
+    customPrompt: bookingPrompt,
+    answers: bookingAnswers,
+  }),
+});
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Booking generation failed');
       setBookingPackage(data.package);
@@ -306,11 +290,8 @@ export default function TripDetailPage() {
   async function handleJoin() {
     setJoining(true);
     try {
-      const token = getAccessToken();
-      if (!token) { router.push('/login'); return; }
-      const res = await fetch(`${API_BASE_URL}/trips/${tripId}/join-requests`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/join-requests`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ message: joinMsg || undefined }),
       });
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.message || 'Failed'); }
@@ -325,10 +306,7 @@ export default function TripDetailPage() {
     if (!confirm('Are you sure you want to leave this trip?')) return;
     setLeaving(true);
     try {
-      const token = getAccessToken();
-      const res   = await fetch(`${API_BASE_URL}/trips/${tripId}/members/leave`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/members/leave`, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to leave');
       toast.success('Left the trip');
       loadTrip();
@@ -340,10 +318,7 @@ export default function TripDetailPage() {
     if (!confirm('Are you sure you want to DELETE this trip? This cannot be undone.')) return;
     setDeleting(true);
     try {
-      const token = getAccessToken();
-      const res   = await fetch(`${API_BASE_URL}/trips/${tripId}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
       toast.success('Trip deleted');
       router.push('/trips');
@@ -353,10 +328,8 @@ export default function TripDetailPage() {
 
   async function handleRequest(requestId: string, status: 'accepted' | 'rejected') {
     try {
-      const token = getAccessToken();
-      const res   = await fetch(`${API_BASE_URL}/trips/${tripId}/join-requests/${requestId}`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/join-requests/${requestId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error('Failed');
@@ -368,10 +341,7 @@ export default function TripDetailPage() {
   async function handleRemoveMember(userId: string) {
     if (!confirm('Remove this member?')) return;
     try {
-      const token = getAccessToken();
-      const res   = await fetch(`${API_BASE_URL}/trips/${tripId}/members/${userId}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/trips/${tripId}/members/${userId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed');
       toast.success('Member removed');
       loadTrip();

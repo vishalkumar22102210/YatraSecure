@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Search, ChevronLeft, ChevronRight, MapPin, Star, ShieldCheck, User } from 'lucide-react';
 import Link from 'next/link';
-import { API_BASE_URL, getAccessToken } from '@/app/lib/api';
+import { API_BASE_URL, fetchWithAuth } from '@/app/lib/api';
 import FollowButton from '@/components/FollowButton';
 
 interface MinimalUser {
@@ -35,10 +35,7 @@ export default function NetworkPage() {
   const fetchUsers = async (pageNumber: number) => {
     setLoading(true);
     try {
-      const token = getAccessToken();
-      const res = await fetch(`${API_BASE_URL}/users?page=${pageNumber}&limit=12`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`${API_BASE_URL}/users?page=${pageNumber}&limit=12`);
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users);
