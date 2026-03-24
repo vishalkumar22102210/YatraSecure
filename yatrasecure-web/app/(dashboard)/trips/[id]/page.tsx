@@ -196,7 +196,10 @@ export default function TripDetailPage() {
 
       try {
         const mRes = await fetch(`${API_BASE_URL}/trips/${tripId}/members`, { headers });
-        if (mRes.ok) setMembers(await mRes.json());
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          setMembers(Array.isArray(mData) ? mData : (mData.data || mData.members || []));
+        }
       } catch { /* ignore */ }
 
       if (token) {
@@ -204,7 +207,10 @@ export default function TripDetailPage() {
           const jRes = await fetch(`${API_BASE_URL}/trips/${tripId}/join-requests`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (jRes.ok) setJoinRequests(await jRes.json());
+          if (jRes.ok) {
+            const jData = await jRes.json();
+            setJoinRequests(Array.isArray(jData) ? jData : (jData.data || jData.requests || []));
+          }
         } catch { /* ignore */ }
       }
     } catch (e: any) {
@@ -375,12 +381,28 @@ export default function TripDetailPage() {
   // ── Derived ────────────────────────────────────────────────────────────────
   const isAdmin = !!currentUser && !!trip &&
     (trip.adminId === currentUser.id || trip.admin?.id === currentUser.id);
-  const isMember = !!currentUser && members.some(
+  const isMember = !!currentUser && Array.isArray(members) && members.some(
     (m: any) => m.userId === currentUser.id || m.user?.id === currentUser.id,
   );
-  const hasPendingRequest = !!currentUser && joinRequests.some(
+  const hasPendingRequest = !!currentUser && Array.isArray(joinRequests) && joinRequests.some(
     (r: any) => r.userId === currentUser.id && r.status === 'pending',
   );
+
+  // Apply category-based palette for this trip
+  useEffect(() => {
+    if (!trip) return;
+    const raw = (trip.category || trip.tripType || "").toString().toLowerCase();
+    let key: string = "adventure";
+    if (raw.includes("mountain") || raw.includes("himala")) key = "mountains";
+    else if (raw.includes("beach") || raw.includes("ocean") || raw.includes("sea") || raw.includes("island")) key = "beach";
+    else if (raw.includes("forest") || raw.includes("nature")) key = "forest";
+    else if (raw.includes("desert") || raw.includes("dune")) key = "desert";
+    else if (raw.includes("city") || raw.includes("urban")) key = "city";
+
+    if (typeof window !== "undefined" && typeof window.setCategoryPalette === "function") {
+      window.setCategoryPalette(key);
+    }
+  }, [trip]);
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (!mounted || loading) return (
@@ -403,22 +425,6 @@ export default function TripDetailPage() {
   const days      = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   const isUpcoming = startDate > new Date();
   const isOngoing  = startDate <= new Date() && endDate >= new Date();
-
-  // Apply category-based palette for this trip
-  useEffect(() => {
-    if (!trip) return;
-    const raw = (trip.category || trip.tripType || "").toString().toLowerCase();
-    let key: string = "adventure";
-    if (raw.includes("mountain") || raw.includes("himala")) key = "mountains";
-    else if (raw.includes("beach") || raw.includes("ocean") || raw.includes("sea") || raw.includes("island")) key = "beach";
-    else if (raw.includes("forest") || raw.includes("nature")) key = "forest";
-    else if (raw.includes("desert") || raw.includes("dune")) key = "desert";
-    else if (raw.includes("city") || raw.includes("urban")) key = "city";
-
-    if (typeof window !== "undefined" && typeof window.setCategoryPalette === "function") {
-      window.setCategoryPalette(key);
-    }
-  }, [trip]);
 
   return (
     <div className="anim-in">

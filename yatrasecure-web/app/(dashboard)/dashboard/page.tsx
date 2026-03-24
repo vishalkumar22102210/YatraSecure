@@ -11,7 +11,6 @@ import {
 import { fetchWithAuth } from "@/app/lib/api";
 import toast from "react-hot-toast";
 import JoinByInviteCode from "@/components/JoinByInviteCode";
-import PersonalityQuiz from "@/components/PersonalityQuiz";
 import SuggestedTravelers from "@/components/SuggestedTravelers";
 import { CategoryCharacter } from "@/components/CategoryCharacter";
 
@@ -545,7 +544,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── ROW 2: TRIPS & ACTIONS ── */}
-      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="xl:grid-cols-[1fr_360px]">
+      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }}>
         {/* Left: Trips */}
         <div style={{ padding: 28, borderRadius: 24, background: "linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)", border: "1px solid rgba(255,255,255,0.05)", boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
@@ -609,19 +608,6 @@ export default function DashboardPage() {
               {upcoming.map(trip => <TripCard key={trip.id} trip={trip} />)}
             </div>
           )}
-        </div>
-
-        {/* Right: Personality Quiz */}
-        <div>
-          <PersonalityQuiz 
-            initialPersonality={user?.travelPersonality}
-            onComplete={(p) => {
-              const updatedUser = { ...user, travelPersonality: p };
-              setUser(updatedUser);
-              localStorage.setItem("user", JSON.stringify(updatedUser));
-              toast.success(`You are a ${p}!`);
-            }} 
-          />
         </div>
       </div>
 
